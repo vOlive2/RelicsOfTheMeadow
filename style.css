@@ -1,66 +1,48 @@
 body {
-  background-color: #f6f0e3; /* cozy beige backdrop */
-  font-family: 'Playfair Display', serif;
-  margin: 0;
-  padding: 0;
-}
-
-.onboarding-container {
+  background: linear-gradient(180deg, #e7dcc3, #cfc3a8);
+  font-family: "Cinzel", serif;
+  color: #2b2b2b;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 2rem;
-}
-
-.title {
-  font-size: 2rem;
-  margin-bottom: 2rem;
-  color: #3e2f1c;
-  text-align: center;
-}
-
-.faction-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 1.5rem;
-  width: 90%;
-  max-width: 1200px;
-}
-
-.faction-card {
-  border-radius: 20px;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   align-items: center;
-  color: #fff;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  height: 100vh;
+  margin: 0;
+}
+
+.landing-container {
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  min-height: 250px;
+  animation: fadeIn 1s ease-in;
 }
 
-.faction-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
-}
-
-.faction-emoji {
-  font-size: 2rem;
+.landing-title {
+  font-size: 3rem;
   margin-bottom: 0.5rem;
 }
 
-.faction-name {
-  font-size: 1.3rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
+.landing-subtitle {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  opacity: 0.8;
 }
 
-.faction-overview {
-  font-size: 1rem;
-  opacity: 0.9;
-  line-height: 1.4;
+.enter-button {
+  background-color: #4a3d2f;
+  color: #fffaf0;
+  font-size: 1.2rem;
+  padding: 0.8rem 1.6rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.enter-button:hover {
+  background-color: #2e241b;
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

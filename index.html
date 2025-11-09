@@ -1,6 +1,22 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="refresh" content="0; url=src/ui/Onboarding/onboarding.html">
-  </head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relics of the Meadow</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="landing-container">
+    <h1 class="landing-title">Relics of the Meadow</h1>
+    <p class="landing-subtitle">A world divided by faith, fungus, and fury.</p>
+    <button id="enterBtn" class="enter-button">Enter the Meadow</button>
+  </div>
+
+  <script>
+    document.getElementById("enterBtn").addEventListener("click", () => {
+      window.location.href = "src/ui/Onboarding/onboarding.html";
+    });
+  </script>
+</body>
 </html>

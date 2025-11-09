@@ -1,0 +1,23 @@
+{
+  "name": "The Spider Court",
+  "emoji": "🕸️",
+  "overview": "Every secret is a thread—and the Spider Court spins them all.",
+  "fullLore": "Hidden deep within the shadowed caverns and hollowed ruins of their lost empire, the Spider Court plots its silent return. Once the rulers of the known world, they were cast into hiding after the fall of the old age. But the Court has waited, patient as silk—watching the world rebuild and fracture, biding their time until the moment to reclaim their dominion arrived. They do not seek vengeance; they seek restoration. The world has changed, and the Court intends to change with it—but never beneath it.\n\nThe Spider Court is a sprawling bureaucracy of schemers and manipulators bound by old law. They feed not on blood, but on information, weaving deception into law and lies into treaties. They twist negotiations, alter alliances, and sabotage conflicts, all without ever drawing a blade. Their trade in goods and influence flows easily, for while they produce much, they rely on others—chiefly the Jade Empire—to distribute their wares. Together, they maintain a fragile but lucrative dance of dependence. Yet all the while, the Court gathers secrets like flies, waiting for the perfect time to strike.\n\nIn gameplay, their power of manipulation is immense—but it comes at a cost. Maintaining their intricate network of espionage and diplomacy slowly drains their economy, forcing players to balance deceit with sustainability. Their grudges run deep, and when they turn their focus toward an enemy, they can rally the entire board against them—not through might, but through quiet, ruthless persuasion.",
+  "specialMechanic": {},
+  "startingRelic": "🕸️ Web of Lies",
+  "defaultTraits": {
+    "prowess": 2,
+    "resilience": 3,
+    "economy": 6
+  },
+  "relationships": {
+    "Devoured Faith": "neutral",
+    "Spider Court": "self",
+    "Meadowfolk Union": "neutral",
+    "Jade Empire": "neutral",
+    "Mycelid Monarchy": "neutral",
+    "Crimson Horde": "neutral"
+  },
+  "flag": "",
+  "palette": ["#C0C0C0", "#001F3F", "#E5B3BB"]
+}

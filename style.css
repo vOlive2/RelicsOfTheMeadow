@@ -1,30 +1,66 @@
 body {
-  background-color: #ede0ce;
-  color: #2f1b0c;
-  font-family: "IM Fell English", serif;
-  text-align: center;
+  background-color: #f6f0e3; /* cozy beige backdrop */
+  font-family: 'Playfair Display', serif;
   margin: 0;
   padding: 0;
-  height: 100vh;
+}
+
+.onboarding-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 2rem;
 }
 
-.intro h1 {
-  font-size: 3em;
-  margin-bottom: 0.25em;
+.title {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #3e2f1c;
+  text-align: center;
 }
 
-.enter-btn {
-  background-color: #a67b5b;
+.faction-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 90%;
+  max-width: 1200px;
+}
+
+.faction-card {
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
   color: #fff;
-  padding: 0.75em 1.5em;
-  text-decoration: none;
-  border-radius: 10px;
-  transition: background-color 0.2s ease;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  min-height: 250px;
 }
 
-.enter-btn:hover {
-  background-color: #c89c74;
+.faction-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+}
+
+.faction-emoji {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.faction-name {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.faction-overview {
+  font-size: 1rem;
+  opacity: 0.9;
+  line-height: 1.4;
 }

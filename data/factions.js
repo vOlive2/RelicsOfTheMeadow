@@ -84,7 +84,7 @@ const factions = [
   },
   {
     name: "The Mycelid Monarchy",
-    emoji: "🦗",
+    emoji: "🍄",
     overview: "Under her rule, the spores rose again—and so did war.",
     fullLore:
       "From the damp ruins and blooming rot, the Mycelid Monarchy emerged—a hive of fungal creatures ruled by their Queen. Her spores breathed new life into decay, spreading their dominion across the soil and sky alike. They do not bring peace; they bring infection, expansion, and conversion. Some fly, others climb or dig, all serving their sovereign’s will.\n\nTheir power lies in hybridization. Through twisted evolutions, the Mycelids merge bug and fungus into one, forming hosts that can fly, dig, and spread plague. Their conversion tactics infect enemies both literally and ideologically—those who fall to their influence often rise as part of their growing hive. They are not invaders; they are an inevitability.\n\nIn gameplay, they overwhelm through spread and conversion. They thrive by overtaking terrain and turning foes into allies. Their expansion grants points but makes them vulnerable to collapse if their hive grows too large or disconnected.",

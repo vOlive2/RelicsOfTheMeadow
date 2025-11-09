@@ -7,8 +7,8 @@ export default function FactionCard({ faction }) {
     <div
       className="faction-card"
       style={{
-        borderColor: palette?.[0] || "#bfa27a",
-        boxShadow: `0 4px 10px ${palette?.[1] || "rgba(0,0,0,0.1)"}`,
+        "--card-border": palette?.[0] || "#bfa27a",
+        "--card-bg": palette?.[1] || "#fffaf0",
       }}
     >
       <div className="faction-header">

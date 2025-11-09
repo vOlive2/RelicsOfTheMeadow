@@ -1,19 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Relics of the Meadow</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Relics of the Meadow — Onboarding</title>
+  <link rel="stylesheet" href="./src/ui/styles.css" />
+</head>
+<body>
+  <div id="root"></div>
 
-  <body>
-    <main class="intro">
-      <h1>Relics of the Meadow</h1>
-      <p>Choose your faction and begin your journey 🌿</p>
-      <a href="src/ui/Onboarding/index.jsx" class="enter-btn">Enter the Meadow</a>
-    </main>
-
-    <script src="main.js"></script>
-  </body>
+  <!-- Browser module that renders the onboarding UI -->
+  <script type="module" src="./src/ui/Onboarding/onboarding.js"></script>
+</body>
 </html>

@@ -1,87 +1,45 @@
-/* --- GLOBAL LOOK --- */
-.onboarding-container {
-  font-family: "Garamond", "Georgia", serif;
-  background-color: #f3e6c9; /* parchment beige */
-  background-image: radial-gradient(
-    circle at top left,
-    #f9edd5 0%,
-    #f3e6c9 50%,
-    #ebd8b3 100%
-  );
-  color: #2b1d12;
-  min-height: 100vh;
-  padding: 3rem 2rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+body {
+  background-color: #f6f0e3; /* beautiful beige */
+  color: #2b2b2b;
+  font-family: 'Playfair Display', serif;
+  margin: 0;
+  padding: 0;
 }
 
-.title {
-  font-size: 2.7rem;
-  font-weight: 700;
-  margin-bottom: 2.5rem;
-  letter-spacing: 2px;
-  color: #3b2a1a;
-  text-shadow: 1px 1px 1px #ffffffaa;
-}
-
-/* --- GRID --- */
-.faction-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, auto);
-  gap: 2.5rem;
-  justify-items: center;
-  width: 100%;
-  max-width: 1100px;
-}
-
-/* --- CARD --- */
 .faction-card {
-  width: 100%;
-  max-width: 300px;
-  border-radius: 18px;
-  padding: 1.8rem;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+  transition: transform 0.3s;
   color: #fff;
-  text-shadow: 1px 1px 2px #000;
+  text-align: center;
 }
 
 .faction-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  transform: translateY(-5px);
 }
 
-/* --- FACTION CONTENT --- */
-.faction-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0.5rem 0 1rem;
-  text-align: center;
+/* Example faction color usage */
+.faction-card[data-faction="The Devoured Faith"] {
+  background: linear-gradient(145deg, #3b0a0a, #7a1414);
 }
 
-.faction-flag {
-  width: 100%;
-  height: 120px;
-  object-fit: contain;
-  margin-bottom: 1rem;
-  border-radius: 10px;
-  border: 2px solid #ffffff50;
-  background-color: #00000020;
+.faction-card[data-faction="The Spider Court"] {
+  background: linear-gradient(145deg, #2c1b47, #5a3d89);
 }
 
-.overview {
-  font-size: 1rem;
-  font-style: italic;
-  opacity: 0.95;
-  color: #f7f3ef;
-  line-height: 1.4;
-  text-align: center;
+.faction-card[data-faction="The Meadowfolk Union"] {
+  background: linear-gradient(145deg, #c5d86d, #8fb339);
+}
+
+.faction-card[data-faction="The Jade Empire"] {
+  background: linear-gradient(145deg, #3c7a5e, #68b684);
+}
+
+.faction-card[data-faction="The Mycelid Monarchy"] {
+  background: linear-gradient(145deg, #6b4a82, #b084cc);
+}
+
+.faction-card[data-faction="The Crimson Horde"] {
+  background: linear-gradient(145deg, #8a1c1c, #d64545);
 }

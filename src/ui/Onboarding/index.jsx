@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import OnboardingMenu from "./Onboarding/OnboardingMenu";
+import OnboardingMenu from "./OnboardingMenu";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(

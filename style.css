@@ -1,0 +1,29 @@
+body {
+  background-color: #0e0e0e;
+  color: #e5e5e5;
+  font-family: "Cinzel", serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.intro {
+  text-align: center;
+}
+
+.enter-btn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.25rem;
+  background-color: #a38b4d;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.enter-btn:hover {
+  background-color: #c2a34d;
+}

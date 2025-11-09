@@ -1,9 +1,47 @@
 body {
+  background-color: #f3e5ab;
+  font-family: 'Georgia', serif;
+  color: #2c1b10;
+  text-align: center;
   margin: 0;
-  font-family: 'IM Fell English', serif;
-  background-color: #f7f0d5;
-  background-image: url('/assets/parchment_texture.png');
-  background-size: cover;
-  background-repeat: repeat;
-  color: #3b2f2f;
+  padding: 0;
+}
+
+.title {
+  font-size: 2rem;
+  margin-top: 1rem;
+  color: #3e2a1f;
+}
+
+.onboarding-container {
+  padding: 2rem;
+}
+
+.faction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  justify-items: center;
+  margin-top: 1.5rem;
+}
+
+.faction-card {
+  width: 200px;
+  height: 200px;
+  background-color: #fdf4dc;
+  border: 3px solid #3e2a1f;
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.faction-card:hover {
+  transform: translateY(-4px);
+  background-color: #f8e9c0;
+}
+
+.faction-card.selected {
+  border-color: #7c3f00;
+  box-shadow: 0 0 10px rgba(124, 63, 0, 0.5);
 }

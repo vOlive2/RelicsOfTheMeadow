@@ -1,44 +1,21 @@
-// src/utils/fileLoader.js
-import fs from "fs";
-import path from "path";
+export async function loadFactions() {
+  const factionFiles = [
+    "crimson_horde.json",
+    "devoured_faith.json",
+    "jade_empire.json",
+    "meadowfolk_union.json",
+    "mycelid_monarchy.json",
+    "spider_court.json",
+  ];
 
-export function loadFactions(folderPath = path.resolve("./data/factions")) {
-  const data = {};
-  const files = fs.readdirSync(folderPath);
-  for (const file of files) {
-    if (file.endsWith(".json")) {
-      const key = path.basename(file, ".json");
-      const content = JSON.parse(fs.readFileSync(path.join(folderPath, file), "utf8"));
-      data[key] = content;
-    }
-  }
-  return data;
-}
+  const factions = {};
 
-export function loadRelics(rootRelicsPath = path.resolve("./data/relics")) {
-  const relics = {};
-
-  function recurse(currentPath, categoryKey) {
-    const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-    for (const entry of entries) {
-      const full = path.join(currentPath, entry.name);
-      if (entry.isDirectory()) {
-        const cat = entry.name;
-        relics[cat] = relics[cat] || {};
-        recurse(full, cat);
-      } else if (entry.isFile() && entry.name.endsWith(".json")) {
-        const key = path.basename(entry.name, ".json");
-        const content = JSON.parse(fs.readFileSync(full, "utf8"));
-        if (categoryKey) {
-          relics[categoryKey][key] = content;
-        } else {
-          relics.misc = relics.misc || {};
-          relics.misc[key] = content;
-        }
-      }
-    }
+  for (const file of factionFiles) {
+    const name = file.replace(".json", "");
+    const response = await fetch(`./data/factions/${file}`);
+    const json = await response.json();
+    factions[name] = json;
   }
 
-  recurse(rootRelicsPath, null);
-  return relics;
+  return factions;
 }

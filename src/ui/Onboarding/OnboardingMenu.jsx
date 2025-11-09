@@ -19,7 +19,8 @@ export default function OnboardingMenu() {
             key={key}
             className="faction-card"
             style={{
-              background: `linear-gradient(135deg, ${faction.palette?.[0]}, ${faction.palette?.[1]})`,
+              background: `linear-gradient(145deg, ${faction.palette?.[0]}, ${faction.palette?.[1]})`,
+              border: `2px solid ${faction.palette?.[2] || "#fff"}`,
             }}
           >
             <div className="faction-header">
@@ -27,6 +28,7 @@ export default function OnboardingMenu() {
                 {faction.emoji} {faction.name}
               </h2>
             </div>
+
             {faction.flag && (
               <img
                 src={faction.flag}
@@ -34,7 +36,8 @@ export default function OnboardingMenu() {
                 className="faction-flag"
               />
             )}
-            <p className="overview">{faction.overview}</p>
+
+            <p className="overview">“{faction.overview}”</p>
           </div>
         ))}
       </div>

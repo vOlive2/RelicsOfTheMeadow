@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Enter the Meadow 🌿</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="onboarding.css">
 </head>
 <body>
 
@@ -14,36 +14,10 @@
     <div id="faction-list" class="faction-list"></div>
   </div>
 
-  <script src="../data/factions.js"></script>
-  <script>
-    // Wait until the faction data is available
-    document.addEventListener('DOMContentLoaded', () => {
-      const factionList = document.getElementById('faction-list');
-
-      if (typeof factions === 'undefined') {
-        factionList.innerHTML = '<p style="color:red;">⚠️ No faction data found!</p>';
-        return;
-      }
-
-      // Populate the faction cards dynamically
-      factions.forEach(faction => {
-        const card = document.createElement('div');
-        card.className = 'faction-card';
-        card.innerHTML = `
-          <h2>${faction.emoji} ${faction.name}</h2>
-          <p>${faction.description}</p>
-          <button onclick="selectFaction('${faction.name}')">Choose</button>
-        `;
-        factionList.appendChild(card);
-      });
-    });
-
-    // Handle faction selection
-    function selectFaction(name) {
-      localStorage.setItem('selectedFaction', name);
-      window.location.href = 'game.html'; // or wherever your next page is
-    }
-  </script>
+  <!-- Load faction data first -->
+  <script src="../../../data/factions.js"></script>
+  <!-- Then the logic -->
+  <script src="onboarding.js"></script>
 
 </body>
 </html>

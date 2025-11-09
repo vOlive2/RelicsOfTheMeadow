@@ -123,4 +123,4 @@ const factions = [
     palette: ["#C0C0C0", "#001F3F", "#E5B3BB"]
   }
 ];
-console.log("✅ factions.js loaded", factions);
+console.log("✅ Factions are loaded", factions);

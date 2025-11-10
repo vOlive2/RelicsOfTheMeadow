@@ -1,4 +1,4 @@
-const relics = [
+export const relics = [
   // 🌿 Bane & Friend Relics
   {
     name: "🩸 Bane of the Crimson Horde",
@@ -129,7 +129,7 @@ const relics = [
 
   // 🏰 Faction-Specific Relics (updated names/types + Ruins of Deception)
   {
-    name: "Ruins of Deception",
+    name: "🪨 Ruins of Deception",
     type: "Devoured Faith",
     effect: "Whenever you steal a relic, recruit 1 extra unit and place it anywhere on the map."
   },

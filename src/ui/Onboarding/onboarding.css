@@ -2,8 +2,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Cinzel', serif;
-  background: linear-gradient(180deg, #f4f1ea 0%, #d9e8d8 100%);
-  color: #333;
+  background-color: #c0a282;
+  color: #000000;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -24,7 +24,7 @@ h1 {
 p {
   font-size: 1.2em;
   margin-bottom: 2em;
-  color: #555;
+  color: #000000;
 }
 
 /* 🌿 FACTION GRID LAYOUT */
@@ -38,7 +38,7 @@ p {
 
 /* 🏕️ FACTION CARD STYLE */
 .faction-card {
-  background: white;
+  background: #ffedd7;
   border: 3px solid #ccc;
   border-radius: 16px;
   padding: 1.2em;

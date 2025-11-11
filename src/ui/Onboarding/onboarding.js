@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     card.querySelector('.select-btn').addEventListener('click', () => {
       localStorage.setItem('selectedFaction', faction.name);
       alert(`You’ve pledged to ${faction.name}! 🌿`);
+      localStorage.setItem("chosenFaction", faction.name);
       window.location.href = '../../game/index.html'; // adjust if needed
     });
 

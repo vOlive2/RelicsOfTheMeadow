@@ -1,66 +1,109 @@
-import { StateManager } from './stateManager.js';
+let energy = 10;
+let gold = 200;
+const eventLog = document.getElementById('event-log');
+const energyEl = document.getElementById('energy');
 
-const state = new StateManager();
-state.loadData();
+// Main action cost map
+const actions = {
+  'declare-war': { cost: 5, gold: 100 },
+  'battle': { cost: 1, gold: 0 },
+  'fortify': { cost: 2, gold: 50 },
+  'build': { cost: 2, gold: 25 },
+  'trade': { cost: 1, gold: 0 },
+  'use-relic': { cost: 1, gold: 15 },
+  'faction-abilities': { cost: 1, gold: 0 },
+  'end-turn': { cost: 0, gold: 0 }
+};
 
-// Example usage:
-state.factions['crimson_horde'].addRelic('horn_of_fury');
-state.factions['crimson_horde'].traits.prowess += 2;
-
-console.log(state.factions['crimson_horde']);
-state.saveGame();
-
-
-// === Relics of the Meadow: Board Generator === //
-
-const boardElement = document.getElementById("board");
-
-const terrainTypes = [
-  { name: "Forest", emoji: "🌲", color: "#3b7a57" },
-  { name: "Meadow", emoji: "🌿", color: "#7ec850" },
-  { name: "Ruin", emoji: "🏚️", color: "#7d5a4f" },
-  { name: "River", emoji: "💧", color: "#4fc3f7" },
-  { name: "Mountain", emoji: "⛰️", color: "#8d8c8a" }
-];
-
-function generateMap() {
-  const clearings = [];
-  for (let i = 0; i < 25; i++) {
-    const randomTerrain = terrainTypes[Math.floor(Math.random() * terrainTypes.length)];
-    clearings.push({
-      id: i + 1,
-      terrain: randomTerrain.name,
-      emoji: randomTerrain.emoji,
-      color: randomTerrain.color,
-      owner: null
-    });
-  }
-  state.map = clearings; // store it in the game state
-  return clearings;
+// 💬 Utility functions
+function log(msg) {
+  const p = document.createElement('p');
+  p.textContent = msg;
+  eventLog.prepend(p);
 }
 
-function renderBoard(clearings) {
-  const board = document.getElementById("board");
-  clearings.forEach(clearing => {
-    const div = document.createElement("div");
-    div.classList.add("clearing");
-    div.style.backgroundColor = clearing.color;
-    div.innerHTML = `
-      <span class="emoji">${clearing.emoji}</span>
-      <span class="id">#${clearing.id}</span>
-    `;
-    div.addEventListener("click", () => handleClearingClick(clearing));
-    board.appendChild(div);
+function updateHUD() {
+  energyEl.textContent = `Energy: ${energy} ⚡ | Gold: ${gold} 💰`;
+}
+
+function spend(cost, gCost, label) {
+  if (energy < cost) return log(`❌ Not enough energy to ${label}!`);
+  if (gold < gCost) return log(`💸 You need ${gCost} gold to ${label}!`);
+  energy -= cost;
+  gold -= gCost;
+  updateHUD();
+  log(`✅ ${label} (-${cost}⚡, -${gCost}💰)`);
+  if (energy <= 0) endTurn();
+}
+
+// 🌙 End Turn Cycle
+function endTurn() {
+  log('🌙 Turn ended. AI factions are acting...');
+  setTimeout(() => {
+    log('🌅 A new day dawns!');
+    energy = 10;
+    gold += 25;
+    updateHUD();
+  }, 1500);
+}
+
+// 🧩 Action Handlers
+document.querySelectorAll('#actions button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.action;
+    const { cost, gold: gCost } = actions[key];
+
+    switch (key) {
+      case 'trade':
+        openTradePopup();
+        break;
+      case 'faction-abilities':
+        openFactionPopup();
+        break;
+      case 'end-turn':
+        endTurn();
+        break;
+      default:
+        spend(cost, gCost, btn.textContent);
+        break;
+    }
   });
+});
+
+// 💰 TRADE POPUP
+const tradePopup = document.getElementById('trade-popup');
+const closeTrade = document.getElementById('close-trade');
+closeTrade.addEventListener('click', () => tradePopup.classList.add('hidden'));
+
+function openTradePopup() {
+  tradePopup.classList.remove('hidden');
+  log('📦 Managing trade routes...');
 }
 
-function handleClearingClick(clearing) {
-  const faction = state.factions['crimson_horde']; // example
-  alert(`Clearing #${clearing.id}\nTerrain: ${clearing.terrain}`);
-  clearing.owner = faction.name;
-  console.log(`${faction.name} now controls Clearing #${clearing.id}`);
-}
+document.querySelectorAll('[data-trade]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.trade;
+    if (t === 'cut') log('✂️ Trade route cut. No gold spent.');
+    else if (t === 'expand' && gold >= 25) { gold -= 25; log('🛣️ Expanded trade route (-25💰).'); }
+    else if (t === 'deal' && gold >= 50) { gold -= 50; log('🤝 Formed new trade deal (-50💰).'); }
+    else log('💸 Not enough gold!');
+    updateHUD();
+  });
+});
 
-// Create and render the board
-const map = generateMap();
-renderBoard(map);
+// 🌟 FACTION ABILITIES POPUP
+const factionPopup = document.getElementById('faction-popup');
+const closeFaction = document.getElementById('close-faction');
+const factionAbilitiesList = document.getElementById('faction-abilities-list');
+closeFaction.addEventListener('click', () => factionPopup.classList.add('hidden'));
+
+function openFactionPopup() {
+  factionPopup.classList.remove('hidden');
+  factionAbilitiesList.innerHTML = `
+    <ul>
+      <li>🔥 <b>Vengeance Surge</b> – Gain +2 Energy next battle.</li>
+      <li>🐾 <b>Pack Tactics</b> – When attacking, add +1 hit for each allied unit nearby.</li>
+    </ul>
+  `;
+  log('🌟 Viewing faction abilities...');
+}

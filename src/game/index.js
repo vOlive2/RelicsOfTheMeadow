@@ -1,141 +1,74 @@
-// ======= GLOBAL STATE =======
-let energy = 10;
-let gold = 200;
-let numTradePosts = 0;
-let buildCosts = {};
-let currentFaction = null;
+import factions from "../../data/factions.js";
 
-const eventLog = document.getElementById('event-log');
-const energyEl = document.getElementById('energy');
-const factionInfo = document.getElementById('faction-info');
-const factionAbilitiesList = document.getElementById('faction-abilities-list');
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("Factions loaded:", factions.map(f => f.name));
 
-// ======= LOADERS =======
-async function loadBuildCosts() {
-  const res = await fetch('./data/build_costs.json');
-  buildCosts = await res.json();
-}
+  const selectedFaction = factions.find(f => f.name === "The Crimson Horde"); // later we’ll make this dynamic
+  renderFactionInfo(selectedFaction);
+});
 
-async function loadFactionData(factionKey) {
-  const res = await fetch(`./data/factions/${factionKey}.json`);
-  const data = await res.json();
-  currentFaction = data;
-  localStorage.setItem('chosenFaction', factionKey);
-  updateFactionHUD();
-}
+function renderFactionInfo(faction) {
+  const hud = document.getElementById("hud");
+  hud.innerHTML = `
+    <div id="faction-info" class="faction-card">
+      <h2>${faction.emoji} ${faction.name}</h2>
+      <p>${faction.overview}</p>
+      <p><strong>Prowess:</strong> ${faction.defaultTraits.prowess} | 
+         <strong>Resilience:</strong> ${faction.defaultTraits.resilience} | 
+         <strong>Economy:</strong> ${faction.defaultTraits.economy}</p>
+      <p><strong>Starting Relic:</strong> ${faction.startingRelic}</p>
+      <button id="show-abilities">Faction Abilities</button>
+    </div>
 
-// ======= INITIAL SETUP =======
-async function initGame() {
-  await loadBuildCosts();
-  const savedFaction = localStorage.getItem('chosenFaction') || 'crimson_horde';
-  await loadFactionData(savedFaction);
-  updateHUD();
-}
+    <div id="faction-abilities" class="abilities-tab hidden"></div>
 
-initGame();
-
-// ======= ACTION COSTS =======
-function getBuildCost() {
-  // example dynamic cost scaling
-  return (buildCosts.trade_post || 25) * (1 + numTradePosts * 0.5);
-}
-
-const actions = {
-  'declare-war': { cost: 5, gold: 100 },
-  'battle': { cost: 1, gold: 0 },
-  'fortify': { cost: 2, gold: 50 },
-  'build': { cost: 2, gold: () => getBuildCost() },
-  'trade': { cost: 1, gold: 0 },
-  'use-relic': { cost: 1, gold: 15 },
-  'faction-abilities': { cost: 1, gold: 0 },
-  'end-turn': { cost: 0, gold: 0 }
-};
-
-// ======= UTILITIES =======
-function log(msg) {
-  const p = document.createElement('p');
-  p.textContent = msg;
-  eventLog.prepend(p);
-}
-
-function updateHUD() {
-  energyEl.textContent = `Energy: ${energy} ⚡ | Gold: ${gold} 💰`;
-}
-
-function updateFactionHUD() {
-  factionInfo.innerHTML = `
-    <h2>${currentFaction.emoji} ${currentFaction.name}</h2>
-    <p>Prowess: ${currentFaction.prowess} | Resilience: ${currentFaction.resilience} | Economy: ${currentFaction.economy}</p>
-    <p>Relics: ${currentFaction.relics?.join(', ') || 'None'}</p>
+    <div id="actions">
+      <button>Battle</button>
+      <button>Declare War</button>
+      <button>Offer Alliance</button>
+      <button>Fortify</button>
+      <button>Build</button>
+      <button>Manage Trade</button>
+      <button>Use Relic</button>
+      <button>End Turn</button>
+    </div>
   `;
-  factionAbilitiesList.innerHTML = currentFaction.abilities.map(
-    ab => `<li>${ab.emoji || '✨'} <b>${ab.name}</b> – ${ab.desc}</li>`
-  ).join('');
+
+  // Add event for "Faction Abilities" tab
+  document.getElementById("show-abilities").addEventListener("click", () => {
+    toggleFactionAbilities(faction);
+  });
 }
 
-function spend(cost, gCost, label) {
-  const goldCost = typeof gCost === 'function' ? gCost() : gCost;
-  if (energy < cost) return log(`❌ Not enough energy to ${label}!`);
-  if (gold < goldCost) return log(`💸 You need ${goldCost} gold to ${label}!`);
-  energy -= cost;
-  gold -= goldCost;
-  updateHUD();
-  log(`✅ ${label} (-${cost}⚡, -${goldCost}💰)`);
-  if (energy <= 0) endTurn();
+function toggleFactionAbilities(faction) {
+  const tab = document.getElementById("faction-abilities");
+  tab.classList.toggle("hidden");
+
+  if (!tab.classList.contains("hidden")) {
+    const abilities = flattenAbilities(faction.specialMechanic);
+    tab.innerHTML = `
+      <h3>${faction.emoji} ${faction.name} Abilities</h3>
+      ${abilities
+        .map(
+          (a) => `
+        <div class="ability">
+          <strong>${a.name}</strong> - ${a.desc} 
+          ${a.cost > 0 ? `<em>(Cost: ${a.cost} gold)</em>` : ""}
+        </div>
+      `
+        )
+        .join("")}
+    `;
+  }
 }
 
-// ======= TURN HANDLING =======
-function endTurn() {
-  log('🌙 Turn ended. AI factions are acting...');
-  setTimeout(() => {
-    log('🌅 A new day dawns!');
-    energy = 10;
-    gold += 25;
-    updateHUD();
-  }, 1500);
-}
-
-// ======= BUTTON HANDLERS =======
-document.querySelectorAll('#actions button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const key = btn.dataset.action;
-    const { cost, gold: gCost } = actions[key];
-
-    switch (key) {
-      case 'trade': return openTradePopup();
-      case 'faction-abilities': return openFactionPopup();
-      case 'end-turn': return endTurn();
-      default: return spend(cost, gCost, btn.textContent);
+function flattenAbilities(specialMechanic) {
+  const flat = [];
+  for (const phase in specialMechanic) {
+    for (const abilityName in specialMechanic[phase]) {
+      const ability = specialMechanic[phase][abilityName];
+      flat.push({ name: abilityName, ...ability });
     }
-  });
-});
-
-// ======= POPUPS =======
-const tradePopup = document.getElementById('trade-popup');
-const closeTrade = document.getElementById('close-trade');
-closeTrade?.addEventListener('click', () => tradePopup.classList.add('hidden'));
-
-function openTradePopup() {
-  tradePopup.classList.remove('hidden');
-  log('📦 Managing trade routes...');
-}
-
-document.querySelectorAll('[data-trade]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const t = btn.dataset.trade;
-    if (t === 'cut') log('✂️ Trade route cut. No gold spent.');
-    else if (t === 'expand' && gold >= 25) { gold -= 25; numTradePosts++; log('🛣️ Expanded trade route (-25💰).'); }
-    else if (t === 'deal' && gold >= 50) { gold -= 50; log('🤝 Formed new trade deal (-50💰).'); }
-    else log('💸 Not enough gold!');
-    updateHUD();
-  });
-});
-
-const factionPopup = document.getElementById('faction-popup');
-const closeFaction = document.getElementById('close-faction');
-closeFaction?.addEventListener('click', () => factionPopup.classList.add('hidden'));
-
-function openFactionPopup() {
-  factionPopup.classList.remove('hidden');
-  log(`🌟 Viewing ${currentFaction.name} abilities...`);
+  }
+  return flat;
 }

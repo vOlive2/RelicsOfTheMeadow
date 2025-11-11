@@ -1,6 +1,6 @@
 // Faction Data for Relics of the Meadow 🌿
 
-const factions = [
+export const factions = [
 // === The Crimson Horde ===
   {
     name: "The Crimson Horde",

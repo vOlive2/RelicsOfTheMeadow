@@ -1,4 +1,4 @@
-import factions from "../../data/factions.js";
+import { factions } from "../../data/factions.js";
 
 let player = {
   faction: null,
@@ -10,9 +10,9 @@ let player = {
 // === INITIALIZE GAME ===
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ Factions loaded:", factions.map(f => f.name));
-
-  // TEMP: start as Crimson Horde (later, we’ll add a faction select screen)
-  const startingFaction = factions.find(f => f.name === "The Crimson Horde");
+  // Load player’s chosen faction or default to Crimson Horde
+  const chosenName = localStorage.getItem("selectedFaction") || "The Crimson Horde";
+  const startingFaction = factions.find(f => f.name === chosenName);
   startGame(startingFaction);
 });
 
@@ -28,10 +28,10 @@ function startGame(faction) {
 }
 
 function calcStartingEnergy(faction) {
-  // Energy = sum of base stats (1–10 each) / 3, rounded up
-  const toNum = (s) => parseInt(s);
+  // Convert "9/10" → 9
+  const parseStat = (s) => parseInt(s.split("/")[0]) || 0;
   const { prowess, resilience, economy } = faction.defaultTraits;
-  return Math.ceil((toNum(prowess) + toNum(resilience) + toNum(economy)) / 3);
+  return Math.ceil((parseStat(prowess) + parseStat(resilience) + parseStat(economy)) / 3);
 }
 
 // === RENDER HUD INFO ===
@@ -40,7 +40,7 @@ function renderHUD() {
   document.getElementById("faction-name").textContent = `${f.emoji} ${f.name}`;
   document.getElementById(
     "stats"
-  ).textContent = `Prowess: ${f.defaultTraits.prowess} | Resilience: ${f.defaultTraits.resilience} | Economy: ${f.defaultTraits.economy}`;
+  ).textContent = `⚔️ Prowess: ${f.defaultTraits.prowess} | 🛡️ Resilience: ${f.defaultTraits.resilience} | 💰 Economy: ${f.defaultTraits.economy}`;
   document.getElementById("relics").textContent = `Relics: ${player.relics.join(", ")}`;
   document.getElementById("energy").textContent = `Energy: ${player.energy} ⚡ | Gold: ${player.gold} 💰`;
 }
@@ -96,9 +96,8 @@ function togglePopup(id, show = true) {
 
 function showFactionAbilities(faction) {
   const list = document.getElementById("faction-abilities-list");
-  const flatAbilities = flattenAbilities(faction.specialMechanic);
 
-  list.innerHTML = flatAbilities
+  list.innerHTML = faction.abilities
     .map(
       (a) => `
       <div class="ability">
@@ -110,17 +109,6 @@ function showFactionAbilities(faction) {
     .join("");
 
   togglePopup("faction-popup", true);
-}
-
-// === ABILITY FLATTENER ===
-function flattenAbilities(mechanic) {
-  const list = [];
-  for (const phase in mechanic) {
-    for (const name in mechanic[phase]) {
-      list.push({ name, ...mechanic[phase][name] });
-    }
-  }
-  return list;
 }
 
 // === ENERGY & GOLD SPENDING ===

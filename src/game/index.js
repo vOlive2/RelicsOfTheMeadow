@@ -1,4 +1,3 @@
-// ✅ index.js
 import { factions } from "../../data/factions.js";
 import { relics } from "../../data/relics.js";
 
@@ -17,6 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectedName = localStorage.getItem("chosenFaction");
   const startingFaction = factions.find(f => f.name === selectedName) || factions[0];
 
+  if (!startingFaction) {
+    console.error("❌ No factions found! Check factions.js");
+    return;
+  }
+
   startGame(startingFaction);
 });
 
@@ -26,11 +30,17 @@ function startGame(faction) {
   player.energy = calcStartingEnergy(faction);
   player.gold = 200;
 
-  // 🧿 Find faction’s unique relic from relics.js
-  const match = relics.find(r => r.type === faction.name || r.type === faction.emoji);
-  player.relics = match ? [match.name] : ["None"];
+  // 🧿 Find all relics belonging to this faction
+  const factionRelics = relics.filter(
+    r => r.type === faction.name || r.type === faction.emoji
+  );
 
-  console.log(`🎯 Starting as ${faction.name} with relic: ${player.relics}`);
+  // ✅ Store relic names or fallback to “None”
+  player.relics = factionRelics.length
+    ? factionRelics.map(r => r.name)
+    : ["None"];
+
+  console.log(`🎯 Starting as ${faction.name} with relics: ${player.relics}`);
 
   renderHUD();
   setupActionButtons();
@@ -40,19 +50,21 @@ function startGame(faction) {
 function calcStartingEnergy(faction) {
   const { prowess, resilience, economy } = faction.defaultTraits || {};
   if (prowess == null || resilience == null || economy == null) return 5; // fallback
-  return Math.ceil((parseInt(prowess) + parseInt(resilience) + parseInt(economy)) / 3);
+  return Math.ceil((Number(prowess) + Number(resilience) + Number(economy)) / 3);
 }
 
 // 🧠 Draw HUD data
 function renderHUD() {
   const f = player.faction;
+  if (!f) return;
+
   const relicList = Array.isArray(player.relics)
     ? player.relics.join(", ")
     : "None";
 
-  document.getElementById("faction-name").textContent = `${f.emoji} ${f.name}`;
+  document.getElementById("faction-name").textContent = `${f.emoji || "🏳️"} ${f.name}`;
   document.getElementById("stats").textContent = 
-    `Prowess: ${f.defaultTraits.prowess} | Resilience: ${f.defaultTraits.resilience} | Economy: ${f.defaultTraits.economy}`;
+    `Prowess: ${f.defaultTraits?.prowess ?? "?"} | Resilience: ${f.defaultTraits?.resilience ?? "?"} | Economy: ${f.defaultTraits?.economy ?? "?"}`;
   document.getElementById("relics").textContent = `Relics: ${relicList}`;
   document.getElementById("energy").textContent = `Energy: ${player.energy} ⚡ | Gold: ${player.gold} 💰`;
 }
@@ -92,6 +104,8 @@ function handleAction(action) {
     case "end-turn":
       endTurn();
       break;
+    default:
+      logEvent("🤨 Unknown action.");
   }
   renderHUD();
 }

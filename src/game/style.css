@@ -1,5 +1,5 @@
 body {
-  background-color: #111;
+  background-color: #181514;
   color: #f0f0f0;
   font-family: 'Cinzel', serif;
   margin: 0;
@@ -7,14 +7,14 @@ body {
 }
 
 #hud {
-  background: rgba(30, 30, 30, 0.9);
+  background: #c0a282;
   padding: 20px;
   display: flex;
   justify-content: space-between;
-  border-bottom: 2px solid #444;
+  border-bottom: 2px solid #754902;
 }
 
-#faction-info {
+#561e00tion-info {
   flex: 1;
 }
 
@@ -27,7 +27,7 @@ body {
 }
 
 #actions button {
-  background: #222;
+  background: #5a2d00;
   color: #f0f0f0;
   border: 1px solid #555;
   padding: 10px 15px;
@@ -38,7 +38,7 @@ body {
 }
 
 #actions button:hover {
-  background: #333;
+  background: #3a1d01;
 }
 
 #event-log {

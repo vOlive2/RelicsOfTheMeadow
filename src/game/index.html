@@ -1,53 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Relics of the Meadow</title>
-  <link rel="stylesheet" href="./style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relics of the Meadow 🌿</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
-
 <body>
-  <div id="game-board"></div>
+  <header>
+    <h1>Relics of the Meadow 🌿</h1>
+    <div id="factionDisplay">Faction: <span id="selectedFaction">None</span></div>
+  </header>
 
-  <div id="hud">
-    <div id="faction-info">
-      <h2 id="faction-name"></h2>
-      <p id="stats"></p>
-      <p id="relics"></p>
-      <p id="energy"></p>
-    </div>
+  <main>
+    <div id="factionList"></div>
+    <div id="actionButtons"></div>
+  </main>
 
-    <div id="actions">
-      <button data-action="declare-war">⚔️ Declare War</button>
-      <button data-action="battle">🩸 Battle / Siege</button>
-      <button data-action="fortify">🧱 Fortify</button>
-      <button data-action="build">🏗️ Build</button>
-      <button data-action="trade">💰 Manage Trade</button>
-      <button data-action="use-relic">🧿 Use Relic</button>
-      <button data-action="faction-abilities">🌟 Faction Abilities</button>
-      <button data-action="end-turn">🌙 End Turn</button>
-    </div>
-  </div>
+  <footer>
+    <button id="endTurnBtn">End Turn 🌅</button>
+  </footer>
 
-  <div id="event-log"></div>
-
-  <!-- Trade Popup -->
-  <div id="trade-popup" class="popup hidden">
-    <h3>Trade Management</h3>
-    <button data-trade="cut">Cut Trade (Free)</button>
-    <button data-trade="expand">Expand Route (-25💰)</button>
-    <button data-trade="deal">Form Deal (-50💰)</button>
-    <button id="close-trade">Close</button>
-  </div>
-
-  <!-- Faction Abilities Popup -->
-  <div id="faction-popup" class="popup hidden">
-    <h3>Faction Abilities</h3>
-    <div id="faction-abilities-list"></div>
-    <button id="close-faction">Close</button>
-  </div>
-
-  <script type="module" src="./index.js"></script>
+  <!-- ✅ The important part -->
+  <script type="module" src="./index.js" defer></script>
 </body>
 </html>

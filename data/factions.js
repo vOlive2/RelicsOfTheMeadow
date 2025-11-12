@@ -118,7 +118,7 @@ export const factions = [
       { name: "Entangle", desc: "If an enemy unit ends last turn inside your web, steal 1 of their imports.", cost: 0 },
     ],
     startingRelic: "🕸️ Spinner’s Veil",
-    defaultTraits: { prowess: "5/10", resilience: "5/10", economy: "6/10" },
+    defaultTraits: { prowess: "3/10", resilience: "6/10", economy: "6/10" },
     relationships: {
       "Devoured Faith": "neutral",
       "Silken Dominion": "self",

@@ -5,12 +5,12 @@ console.log("✅ Game JS loaded!");
 // import { relics } from "../../data/relics.js";
 
 const factions = [
-  { name: "The Crimson Horde", emoji: "🐺", defaultTraits: { prowess: 7, resilience: 5, economy: 4 } },
-  { name: "The Silken Dominion", emoji: "🕷️", defaultTraits: { prowess: 5, resilience: 6, economy: 5 } },
-  { name: "The Meadowfolk Union", emoji: "🌼", defaultTraits: { prowess: 4, resilience: 7, economy: 6 } },
-  { name: "The Jade Empire", emoji: "🐉", defaultTraits: { prowess: 6, resilience: 6, economy: 6 } },
-  { name: "The Mycelial Monarchy", emoji: "🍄", defaultTraits: { prowess: 5, resilience: 8, economy: 4 } },
-  { name: "The Devoured Faith", emoji: "⛪", defaultTraits: { prowess: 8, resilience: 4, economy: 3 } }
+  { name: "The Crimson Horde", emoji: "🐺", defaultTraits: { prowess: 9, resilience: 2, economy: 4 } },
+  { name: "The Silken Dominion", emoji: "🕷️", defaultTraits: { prowess: 3, resilience: 6, economy: 6 } },
+  { name: "The Meadowfolk Union", emoji: "🌼", defaultTraits: { prowess: 5, resilience: 5, economy: 5 } },
+  { name: "The Jade Empire", emoji: "🐉", defaultTraits: { prowess: 3, resilience: 4, economy: 8 } },
+  { name: "The Mycelial Monarchy", emoji: "🍄", defaultTraits: { prowess: 5, resilience: 8, economy: 3 } },
+  { name: "The Devoured Faith", emoji: "⛪", defaultTraits: { prowess: 6, resilience: 6, economy: 3 } }
 ];
 
 let player = {

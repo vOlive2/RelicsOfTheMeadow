@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Relics of the Meadow 🌿</title>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header>
     <h1>Relics of the Meadow 🌿</h1>
-    <div id="factionDisplay">Faction: <span id="selectedFaction">None</span></div>
+    <div id="factionDisplay">Faction: None</div>
   </header>
 
   <main>
     <div id="factionList"></div>
     <div id="actionButtons"></div>
+    <div id="event-log" class="log-box"></div>
   </main>
 
   <footer>
-    <button id="endTurnBtn">End Turn 🌅</button>
+    <button id="endTurnBtn" data-action="end-turn">End Turn 🌅</button>
   </footer>
 
-  <!-- ✅ The important part -->
-  <script type="module" src="./index.js" defer></script>
+  <script type="module" src="./index.js"></script>
 </body>
 </html>

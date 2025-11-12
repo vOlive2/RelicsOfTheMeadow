@@ -1,7 +1,17 @@
 console.log("✅ Game JS loaded!");
 
-import { factions } from "../../data/factions.js"; 
-import { relics } from "../../data/relics.js"; 
+// You can uncomment these when running as modules
+// import { factions } from "../../data/factions.js";
+// import { relics } from "../../data/relics.js";
+
+const factions = [
+  { name: "The Crimson Horde", emoji: "🐺", defaultTraits: { prowess: 7, resilience: 5, economy: 4 } },
+  { name: "The Silken Dominion", emoji: "🕷️", defaultTraits: { prowess: 5, resilience: 6, economy: 5 } },
+  { name: "The Meadowfolk Union", emoji: "🌼", defaultTraits: { prowess: 4, resilience: 7, economy: 6 } },
+  { name: "The Jade Empire", emoji: "🐉", defaultTraits: { prowess: 6, resilience: 6, economy: 6 } },
+  { name: "The Mycelial Monarchy", emoji: "🍄", defaultTraits: { prowess: 5, resilience: 8, economy: 4 } },
+  { name: "The Devoured Faith", emoji: "⛪", defaultTraits: { prowess: 8, resilience: 4, economy: 3 } }
+];
 
 let player = {
   faction: null,
@@ -10,62 +20,60 @@ let player = {
   relics: [],
 };
 
-// 🌅 Start once page fully loads
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ Factions loaded:", factions.map(f => f.name));
-
-  const selectedName = localStorage.getItem("chosenFaction");
-  const startingFaction = factions.find(f => f.name === selectedName) || factions[0];
-
-  startGame(startingFaction);
+  const chosen = localStorage.getItem("chosenFaction") || factions[0].name;
+  const faction = factions.find(f => f.name === chosen) || factions[0];
+  startGame(faction);
 });
 
-// 🎮 Begin the game for chosen faction
 function startGame(faction) {
   player.faction = faction;
   player.energy = calcStartingEnergy(faction);
   player.gold = 200;
-
-  const match = relics.find(r => r.type === faction.name || r.type === faction.emoji);
-  player.relics = match ? [match.name] : ["None"];
-
-  console.log(`🎯 Starting as ${faction.name} with relic: ${player.relics}`);
+  player.relics = ["Starter Relic"];
 
   renderHUD();
   setupActionButtons();
 }
 
-// ⚡ Calculate energy based on faction traits
 function calcStartingEnergy(faction) {
-  const { prowess, resilience, economy } = faction.defaultTraits || {};
-  if (prowess == null || resilience == null || economy == null) return 5;
-  return Math.ceil((parseInt(prowess) + parseInt(resilience) + parseInt(economy)) / 3);
+  const t = faction.defaultTraits;
+  return Math.ceil((t.prowess + t.resilience + t.economy) / 3);
 }
 
-// 🧠 Draw HUD data
 function renderHUD() {
   const f = player.faction;
-  if (!f) return;
-
-  const relicList = Array.isArray(player.relics)
-    ? player.relics.join(", ")
-    : "None";
-
   document.getElementById("factionDisplay").textContent = `${f.emoji} ${f.name}`;
   document.getElementById("factionList").textContent =
     `Prowess: ${f.defaultTraits.prowess} | Resilience: ${f.defaultTraits.resilience} | Economy: ${f.defaultTraits.economy}`;
-  document.getElementById("actionButtons").textContent = `Relics: ${relicList} | Energy: ${player.energy} ⚡ | Gold: ${player.gold} 💰`;
 }
 
-// 🕹️ Setup buttons
 function setupActionButtons() {
-  document.querySelectorAll("#actions button").forEach(btn => {
-    const action = btn.dataset.action;
-    btn.addEventListener("click", () => handleAction(action));
+  const actionArea = document.getElementById("actionButtons");
+  actionArea.innerHTML = "";
+
+  const actions = [
+    { id: "declare-war", label: "⚔️ Declare War" },
+    { id: "battle", label: "🛡️ Battle" },
+    { id: "fortify", label: "🏰 Fortify" },
+    { id: "build", label: "🔨 Build" },
+    { id: "trade", label: "💰 Trade" },
+    { id: "use-relic", label: "🔮 Use Relic" },
+    { id: "faction-abilities", label: "🧠 Abilities" },
+  ];
+
+  actions.forEach(a => {
+    const btn = document.createElement("button");
+    btn.textContent = a.label;
+    btn.dataset.action = a.id;
+    btn.addEventListener("click", () => handleAction(a.id));
+    actionArea.appendChild(btn);
   });
+
+  // Link footer End Turn button
+  document.getElementById("endTurnBtn").addEventListener("click", () => handleAction("end-turn"));
 }
 
-// 💥 Handle game actions
 function handleAction(action) {
   switch (action) {
     case "declare-war":
@@ -96,40 +104,24 @@ function handleAction(action) {
   renderHUD();
 }
 
-// 💸 Spend resources
-function spendEnergyAndGold(energyCost, goldCost, successMsg) {
-  if (player.energy < energyCost) {
-    logEvent("❌ Not enough energy!");
-    return;
-  }
-  if (player.gold < goldCost) {
-    logEvent("❌ Not enough gold!");
-    return;
-  }
+function spendEnergyAndGold(energyCost, goldCost, msg) {
+  if (player.energy < energyCost) return logEvent("❌ Not enough energy!");
+  if (player.gold < goldCost) return logEvent("❌ Not enough gold!");
 
   player.energy -= energyCost;
   player.gold -= goldCost;
-  logEvent(`✅ ${successMsg}`);
+  logEvent(`✅ ${msg} (-${energyCost}⚡, -${goldCost}💰)`);
 }
 
-// 🌙 End of turn
 function endTurn() {
-  logEvent("🌙 Turn ended. Energy restored!");
   player.energy = calcStartingEnergy(player.faction);
+  logEvent("🌙 Turn ended. Energy restored!");
 }
 
-// 🪶 Log events to UI
 function logEvent(msg) {
-  const log = document.getElementById("event-log") || createLog();
+  const log = document.getElementById("event-log");
   const entry = document.createElement("p");
   entry.textContent = msg;
   log.appendChild(entry);
   log.scrollTop = log.scrollHeight;
-}
-
-function createLog() {
-  const log = document.createElement("div");
-  log.id = "event-log";
-  document.body.appendChild(log);
-  return log;
 }

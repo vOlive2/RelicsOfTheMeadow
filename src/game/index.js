@@ -11,7 +11,6 @@ console.log("✅ Game JS loaded!");
 ///        TURN ORDER        ///
 ////////////////////////////////
 function updateDerivedStats() {
-  player.energy = calcStartingEnergy(player);
   player.resilience = calculateResilience(player);
   player.economy = calculateEconomy(player);
   player.prowess = calculateProwess(player);

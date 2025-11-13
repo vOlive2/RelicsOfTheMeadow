@@ -18,7 +18,7 @@ export function calculateEconomy(player) {
 }
 
 export function calculateProwess(player) {
-  const rawProwess = Math.floor(player.troops / 20)+(player.protection / 20); // sample formula
+  const rawProwess = Math.floor(player.troops / 15)+(player.protection / 15); // sample formula
   return Math.min(10, rawProwess);
 }
 

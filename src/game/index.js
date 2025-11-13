@@ -67,12 +67,12 @@ function renderHUD() {
   document.getElementById("factionDisplay").textContent = `${f.emoji} ${f.name}`;
   updateDerivedStats();
   document.getElementById("factionList").innerHTML = `
-    💖 Happiness: ${player.happiness} \n
-    🛡️ Protection: ${player.protection} \n
-    💪 Prowess: ${player.prowess}/10 \n
-    🧱 Resilience: ${player.resilience}/10 \n
-    💰 Gold: ${player.gold} \n
-    📊 Economy: ${player.economy}/10 \n
+    💖 Happiness: ${player.happiness} <br>
+    🛡️ Protection: ${player.protection} <br>
+    💪 Prowess: ${player.prowess}/10 <br>
+    🧱 Resilience: ${player.resilience}/10 <br>
+    💰 Gold: ${player.gold} <br>
+    📊 Economy: ${player.economy}/10 <br>
     ⚡ Energy: ${player.energy}
   `;
 }

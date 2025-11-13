@@ -1,5 +1,5 @@
 export function calculateResilience(player) {
-  const total = player.happiness + player.protection;
+  const total = (player.happiness + player.protection)/(player.prowess/2);
   return Math.min(10, total);
 }
 

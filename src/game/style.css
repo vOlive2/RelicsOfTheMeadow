@@ -54,9 +54,13 @@ main {
   border: 3px solid #8c6b47;
   border-radius: 16px;
   padding: 1.2em;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 3 columns */
+  grid-template-rows: repeat(1, auto);   /* 1 rows */
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
   font-size: 1.1em;
 }
+
 
 /* 💰 ACTION BUTTONS AREA */
 #actionButtons {
@@ -75,7 +79,7 @@ button {
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 1.1em;
+  font-size: 0.75em;
   padding: 0.6em 1.2em;
   margin: 0.3em;
   cursor: pointer;
@@ -129,11 +133,11 @@ footer button:hover {
 
 /* Scrollbar styling */
 #event-log::-webkit-scrollbar {
-  width: 8px;
+  width: 8em;
 }
 #event-log::-webkit-scrollbar-thumb {
   background: #8c6b47;
-  border-radius: 4px;
+  border-radius: 4em;
 }
 #event-log::-webkit-scrollbar-track {
   background: #ffedd7;

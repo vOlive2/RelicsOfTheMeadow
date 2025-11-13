@@ -53,7 +53,7 @@ function handleAction(action) {
       if(player.canTrade) {
         player.canTrade = false;  
         let num = Math.floor(Math.random() * 15) + 1;
-        spendEnergyAndGold(1, 0, "Trade complete! Gained "+num+" gold", () => player.gold += Math.floor(Math.random() * 15) + 1;
+        spendEnergyAndGold(1, 0, "Trade complete! Gained "+num+" gold", () => player.gold += num);
  *player.economy);
       } else {
         logEvent("You have already tradeed this turn!");

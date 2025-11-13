@@ -15,8 +15,6 @@ function updateDerivedStats() {
   player.resilience = calculateResilience(player);
   player.economy = calculateEconomy(player);
   player.prowess = calculateProwess(player);
-  player.canTrade = true;
-  player.imports = Math.floor(Math.random() * 5) + 1;
 }
 
 function renderHUD() {
@@ -116,13 +114,6 @@ function spendEnergyAndGold(energyCost, goldCost, msg, onSuccess) {
   if (onSuccess) onSuccess();
 }
 
-// 🌙 End turn
-function endTurn() {
-  player.energy = calcStartingEnergy(player.faction);
-  logEvent("🌙 Turn ended. Energy restored!");
-  renderHUD();
-}
-
 // 🧠 NEED TO UPDATE/REMOVE - BUTTONS WILL DISPLAY AT START OF GAME AND NOT IN LIST
 function showFactionAbilities() {
   const abilities = player.faction.abilities;
@@ -138,7 +129,14 @@ function logEvent(msg) {
   log.scrollTop = log.scrollHeight;
 }
 
-
+// 🌙 End turn
+function endTurn() {
+  player.energy = calcStartingEnergy(player.faction);
+  logEvent("🌙 Turn ended. Energy restored!");
+  player.canTrade = true;
+  player.imports = Math.floor(Math.random() * 5) + 1;
+  renderHUD();
+}
 
 ////////////////////////////////
 ///      INITIALIZATION      ///

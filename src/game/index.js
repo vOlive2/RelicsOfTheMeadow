@@ -21,13 +21,13 @@ function renderHUD() {
   document.getElementById("factionDisplay").textContent = `${f.emoji} ${f.name}`;
   updateDerivedStats();
   document.getElementById("factionList").innerHTML = `
-    💖 Happiness: ${player.happiness} <br>
-    🛡️ Protection: ${player.protection} <br>
-    💰 Gold: ${player.gold} <br>
+    <p>💖 Happiness: ${player.happiness}</p> <br>
+    <p>🛡️ Protection: ${player.protection}</p> <br>
+    <p>💰 Gold: ${player.gold}</p> <br>
     <br>
-    💪 Prowess: ${player.prowess}/10 <br>
-    🧱 Resilience: ${player.resilience}/10 <br>
-    📊 Economy: ${player.economy}/10 <br>
+    <p>💪 Prowess: ${player.prowess}/10</p> <br>
+    <p>🧱 Resilience: ${player.resilience}/10</p> <br>
+    <p>📊 Economy: ${player.economy}/10</p> <br>
     ⚡ Energy: ${player.energy}
   `;
 }

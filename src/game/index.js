@@ -64,12 +64,12 @@ function renderHUD() {
   updateDerivedStats();
 
   document.getElementById("factionList").innerHTML = `
-    💖 Happiness: ${player.happiness} |
-    🛡️ Protection: ${player.protection} |
-    💪 Prowess: ${player.prowess}/10 |
-    🧱 Resilience: ${player.resilience}/10 |
-    💰 Gold: ${player.gold} |
-    📊 Economy: ${player.economy}/10 |
+    💖 Happiness: ${player.happiness} \n
+    🛡️ Protection: ${player.protection} \n
+    💪 Prowess: ${player.prowess}/10 \n
+    🧱 Resilience: ${player.resilience}/10 \n
+    💰 Gold: ${player.gold} \n
+    📊 Economy: ${player.economy}/10 \n
     ⚡ Energy: ${player.energy}
   `;
 }

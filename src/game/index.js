@@ -84,11 +84,10 @@ function handleAction(action) {
 // 🧱 Show build menu
 function buildMenu() {
   const available = buildings.filter(b =>
-    b.availableTo === "all" || b.availableTo.includes(player.faction.name)
-  );
+    ((b.availableTo === "all" || b.availableTo.includes(player.faction.name)) && player.buildings.incudes(b.preRec)));
   const choice = prompt(
     `Choose building:\n${available
-      .map((b, i) => `${i + 1}. ${b.name} — 💰${b.cost.gold}, ⚡${b.cost.energy}`)
+      .map((b, i) => `${i + 1}. ${b.name} —— 💰${b.cost.gold}, ⚡${b.cost.energy} —— {player.buildings.filter(item => item === b.name).length} built`)
       .join("\n")}`
   );
   const index = parseInt(choice) - 1;

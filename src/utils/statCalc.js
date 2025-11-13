@@ -22,7 +22,7 @@ export function calculateProwess(player) {
   return Math.min(10, rawProwess);
 }
 
-function calcStartingEnergy(player) {
+export function calcStartingEnergy(player) {
   const avg = (player.prowess + player.resilience + player.economy) / 2;
   return Math.ceil(avg);
 }

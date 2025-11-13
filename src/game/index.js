@@ -110,9 +110,10 @@ function handleAction(action) {
       spendEnergyAndGold(4, 50, "Declared war! Troop count increased.", () => player.troops += 10);
       break;
     case "battle":
-      spendEnergyAndGold(2, 0, "Fought a battle! Gained troops, lost protection.", () => {
+      spendEnergyAndGold(2, 0, "Fought a battle! Gained troops and protection, lost happiness", () => {
         player.troops += 10;
-        player.protection = Math.max(0, player.protection - 1);
+        player.protection = Math.max(0, player.protection + 1);
+        player.happiness = Math.max(0, player.happiness - 1);
       });
       break;
     case "build":

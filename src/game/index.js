@@ -37,7 +37,7 @@ function startGame(faction) {
 // ⚙️ Calculate starting energy
 function calcStartingEnergy(faction) {
   const t = faction.defaultTraits;
-  const avg = (parseInt(t.prowess) + parseInt(t.resilience) + parseInt(t.economy)) / 3;
+  const avg = (parseInt(player.prowess) + parseInt(player.resilience) + parseInt(player.economy)) / 3;
   return Math.ceil(avg);
 }
 
@@ -47,10 +47,10 @@ function renderHUD() {
   document.getElementById("factionDisplay").textContent = `${f.emoji} ${f.name}`;
 
   document.getElementById("factionList").innerHTML = `
-    🗡️ Prowess: ${player.prowess}/10 |
-    🌱 Resilience: ${player.resilience}/10 |
-    💰 Gold: ${player.gold} |
-    ⚡ Energy: ${player.energy}
+    🗡️ Prowess: ${player.prowess}/10 |\n
+    🌱 Resilience: ${player.resilience}/10 |\n
+    💰 Gold: ${player.gold} |\n
+    ⚡ Energy: ${player.energy}\n
   `;
 }
 
@@ -64,7 +64,8 @@ function setupActionButtons() {
     { id: "battle", label: "🛡️ Battle" },
     { id: "fortify", label: "🏰 Fortify" },
     { id: "build", label: "🔨 Build" },
-    { id: "trade", label: "💰 Trade" },
+    { id: "trade", label: "📦 Choose Export" },
+    { id: "trade", label: "💰 Collect Imports" },
     { id: "use-relic", label: "🔮 Use Relic" },
     { id: "faction-abilities", label: "🧠 Abilities" },
   ];

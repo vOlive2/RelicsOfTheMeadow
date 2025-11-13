@@ -17,6 +17,6 @@ export function calculateEconomy(gold) {
 }
 
 export function calculateProwess(player) {
-  const rawProwess = Math.floor(player.troops / 10); // sample formula
+  const rawProwess = Math.floor(player.troops / 20)+(player.protection / 20); // sample formula
   return Math.min(10, rawProwess);
 }

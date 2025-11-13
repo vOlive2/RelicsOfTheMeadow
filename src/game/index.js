@@ -48,7 +48,7 @@ function startGame(faction) {
 
 // ⚙️ Calculate starting energy
 function calcStartingEnergy(faction) {
-  const avg = (player.prowess + player.resilience + player.economy) / 3;
+  const avg = (player.prowess + player.resilience + player.economy) / 2;
   return Math.ceil(avg);
 }
 

@@ -3,7 +3,8 @@ export function calculateResilience(player) {
   return Math.min(10, total);
 }
 
-export function calculateEconomy(gold) {
+export function calculateEconomy(player) {
+  let gold = player.gold;
   if (gold < 10) return 1;
   if (gold < 25) return 2;
   if (gold < 100) return 3;
@@ -19,4 +20,9 @@ export function calculateEconomy(gold) {
 export function calculateProwess(player) {
   const rawProwess = Math.floor(player.troops / 20)+(player.protection / 20); // sample formula
   return Math.min(10, rawProwess);
+}
+
+function calcStartingEnergy(player) {
+  const avg = (player.prowess + player.resilience + player.economy) / 2;
+  return Math.ceil(avg);
 }

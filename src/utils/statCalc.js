@@ -10,7 +10,7 @@ export function calculateEconomy(gold) {
   if (gold < 250) return 4;
   if (gold < 500) return 5;
   if (gold < 1000) return 6;
-  if (gold < 250) return 7;
+  if (gold < 2500) return 7;
   if (gold < 5000) return 8;
   if (gold < 10000) return 9;
   return 10;

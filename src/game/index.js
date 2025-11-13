@@ -169,6 +169,8 @@ function startGame(faction) {
   player.troops = parseInt(faction.defaultTraits.prowess) * 10;
   player.happiness = 1;
   player.protection = 1;
+  player.imports = Math.floor(Math.random() * 5) + 1;
+  player.imports = Math.floor(Math.random() * 5) + 1;
   player.relics = [faction.startingRelic || "None"];
   player.buildings = [];
   updateDerivedStats();

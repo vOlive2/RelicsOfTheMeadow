@@ -4,7 +4,9 @@ export function calculateResilience(player) {
 }
 
 export function calculateEconomy(player) {
-  let gold = player.gold;
+  const tradeValue = (player.tradePostIncome || 0) * 5;
+  const economyBonus = (player.economyBonus || 0) * 50;
+  let gold = player.gold + tradeValue + economyBonus;
   if (gold < 10) return 1;
   if (gold < 25) return 2;
   if (gold < 100) return 3;

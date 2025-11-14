@@ -390,6 +390,8 @@ let player = {
   buildings: [],
   declaredWars: [],
   alliances: [],
+  tradePostIncome: 0,
+  economyBonus: 0,
 };
 document.addEventListener("DOMContentLoaded", () => {
   diplomacyModal = document.getElementById("diplomacyModal");

@@ -49,6 +49,8 @@ const buildings = [
     description: "Generates passive gold and unlocks extra trade actions.",
     cost: { gold: 400, energy: 20 },
     statBoosts: { gold: 50 },
+    tradeIncome: 25,
+    economyBonus: 1,
     tradeBoost: true,
     availableTo: "all"
   }

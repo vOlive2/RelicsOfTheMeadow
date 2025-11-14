@@ -189,6 +189,11 @@ footer button:hover {
   gap: 0.5em;
   background: #fff3e2;
 }
+.diplomacy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
 .diplomacy-actions button {
   font-size: 0.8em;
   margin: 0.2em;

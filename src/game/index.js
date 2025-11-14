@@ -213,26 +213,18 @@ function offerPeace(faction) {
 // 🎮 Handle action logic
 function handleAction(action) {
   switch (action) {
-    case "declare-war": {
-      const targetFaction = chooseOpponent("declare war on");
-      if (!targetFaction) break;
-      if (player.declaredWars.includes(targetFaction.name)) {
-        logEvent(`Already at war with ${targetFaction.name}.`);
+    case "diplomacy":
+      showDiplomacyMenu();
+      break;
+    case "battle": {
+      const availableTargets = factions.filter(
+        f => f.name !== player.faction.name && !player.alliances.includes(f.name)
+      );
+      if (!availableTargets.length) {
+        logEvent("All factions are presently allied with you. Break an alliance before battling.");
         break;
       }
-      spendEnergyAndGold(
-        4,
-        50,
-        `Declared war on ${targetFaction.name}! Troop count increased.`,
-        () => {
-          player.troops += 10;
-          player.declaredWars.push(targetFaction.name);
-        }
-      );
-      break;
-    }
-    case "battle": {
-      const targetFaction = chooseOpponent("battle");
+      const targetFaction = chooseOpponent("battle", f => !player.alliances.includes(f.name));
       if (!targetFaction) break;
       const atWar = player.declaredWars.includes(targetFaction.name);
       spendEnergyAndGold(

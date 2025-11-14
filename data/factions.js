@@ -130,8 +130,30 @@ export const factions = [
     fullLore:
       "The Jade Empire thrives on the pulse of trade. To them, profit is not merely power—it is survival. Built upon centuries of mercantile mastery, they dominate diplomacy and commerce alike, holding the world’s economies in their emerald grasp. The frogs, doves, and cranes each serve a distinct role: the frogs are merchants and politicians, the doves handle diplomacy, and the few remaining cranes work as mercenaries protecting the markets.\n\nTheir empire values wealth above all else. If exile promises gold, they will gladly sell peace to the highest bidder. Other factions rely heavily on their networks; should the Jade Empire cut trade with one, others soon follow. This interwoven reliance ensures their control—starvation of supply and alliance alike.\n\nIn gameplay, they dictate trade and diplomacy. The Jade Empire can impose embargoes, grant favor, or manipulate trade to raise or ruin economies. They earn wealth through transactions and alliances, making every move at the table flow through them. Yet their greed makes them vulnerable—should their trade web collapse, so too does their influence.",
     abilities: [
-      { name: "Taxes", desc: "Gain gold from other players’ capitals if you have a trade route with them.", cost: 0 },
-      { name: "Diplomats", desc: "Once every 3 turns, overrule or abolish an alliance, or create one, forcing peace.", cost: 30 },
+      {
+        name: "Taxes",
+        desc: "Skim profits from every trade route you touch.",
+        cost: { energy: 1, gold: 0 },
+        logic: ({ player, logEvent }) => {
+          const gain = 30 + player.alliances.length * 10;
+          player.gold += gain;
+          logEvent(`🐉 Imperial tax collectors return with ${gain} gold.`);
+        },
+      },
+      {
+        name: "Diplomats",
+        desc: "Dispatch doves to reset the political table.",
+        cost: { energy: 2, gold: 30 },
+        logic: ({ player, logEvent }) => {
+          if (player.declaredWars.length) {
+            player.declaredWars = [];
+            logEvent("🐉 Diplomatic envoys enforce peace across your wars.");
+          } else {
+            player.happiness += 1;
+            logEvent("🐉 Diplomats forge new accords, boosting morale.");
+          }
+        },
+      },
     ],
     startingRelic: "🐉 Coin of Currents",
     defaultTraits: { prowess: "3/10", resilience: "4/10", economy: "8/10" },

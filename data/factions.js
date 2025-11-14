@@ -9,9 +9,42 @@ export const factions = [
     fullLore:
       "The Crimson Horde are conquerors driven by vengeance. Formed from the broken remnants of empires lost to betrayal, they rise as one under banners of fury. Their unity is born not of loyalty, but of wrath—a singular purpose to reclaim and avenge what was taken from them. Once forgotten, they are now the nightmare the six great powers hoped never to remember.\n\nIn gameplay, the Horde excels in overwhelming assault and vengeance-based mechanics. When one of their settlements falls, their power surges in response, turning loss into momentum, burning everything to reclaim their pride.",
     abilities: [
-      { name: "Loot", desc: "For each clearing with only your units, place new units equal to your vengeance points.", cost: 0 },
-      { name: "Raid", desc: "Move and battle twice in a clearing, spending 1 vengeance point each time.", cost: 0 },
-      { name: "Consume", desc: "Remove one of your units and increase vengeance meter by 1 (cannot exceed current cap).", cost: 0 },
+      {
+        name: "Loot",
+        desc: "Ransack conquered territory to swell your war chest.",
+        cost: { energy: 1, gold: 0 },
+        logic: ({ player, logEvent }) => {
+          const gain = Math.max(20, Math.floor(player.troops * 0.5));
+          player.gold += gain;
+          logEvent(`🐺 Horde forces loot ${gain} gold from the fallen.`);
+        },
+      },
+      {
+        name: "Raid",
+        desc: "Unleash a rapid assault to swell ranks at the cost of morale.",
+        cost: { energy: 2, gold: 0 },
+        logic: ({ player, logEvent }) => {
+          player.troops += 8;
+          player.protection = Math.max(0, player.protection + 1);
+          player.happiness = Math.max(0, player.happiness - 1);
+          logEvent("🐺 Raiders strike twice! Troops surge, but the people grow uneasy.");
+        },
+      },
+      {
+        name: "Consume",
+        desc: "Sacrifice warriors to feed the fury within.",
+        cost: { energy: 0, gold: 0 },
+        logic: ({ player, logEvent }) => {
+          if (player.troops < 5) {
+            logEvent("Not enough warriors to consume for vengeance.");
+            return;
+          }
+          player.troops -= 5;
+          player.energy += 2;
+          player.protection = Math.max(0, player.protection + 1);
+          logEvent("🔥 The Horde consumes its own to fuel an unstoppable rage.");
+        },
+      },
     ],
     startingRelic: "🩸 Horn of Fury",
     defaultTraits: { prowess: "9/10", resilience: "2/10", economy: "4/10" },
@@ -35,10 +68,45 @@ export const factions = [
     fullLore:
       "When the Horde’s wrath scorched the land, not all who survived clung to vengeance. Some sought meaning in ruin—and found it in the dark mouths of what came next. The Devoured Faith was born from desperation, a cult that turned surrender into sanctity. They believe the world’s decay is divine and that to be consumed—by plague, by war, by the gods themselves—is to achieve purity.\n\nThe Faith thrives beneath cathedrals of bone and fungus, their hymns echoing in caverns carved by hunger. They trade in despair, offering salvation through sacrifice and control through devotion. Their priests wield relics and rot alike, scavenging from what others leave behind. Rather than wage open war, they drift in after destruction, harvesting whatever remains—land, relics, or lives. Their rituals are quiet and unsettling, transforming ruin into resource.\n\nIn gameplay, they alone can steal relics from other factions, feeding their power through theft and devotion. They earn points by scavenging relics and resources from abandoned or devastated regions, turning desolation into strength. Though their rituals may appear ominous, the Faith are not destroyers—they are the quiet cleanup crew of the fallen world, inheritors of what others abandon. Their obsession with relics, however, corrodes their surroundings, slowly draining their resilience as their faith’s hunger spreads across the land.",
     abilities: [
-      { name: "Delve", desc: "For each relic you own, place one unit in any clearing or move it to your trade track. If overpopulated, move relic to trade track instead.", cost: 0 },
-      { name: "Sanctify", desc: "Steal a relic from an enemy unit (max 3 times per turn).", cost: 25 },
-      { name: "Encamp", desc: "Place a citadel in any clearing with your pieces.", cost: 20 },
-      { name: "Infiltration", desc: "For each sold relic, place a warrior in a clearing with the buyer’s pieces. Remove a citadel each time; cannot activate if none remain.", cost: 0 },
+      {
+        name: "Delve",
+        desc: "Channel relics to summon fresh devotees.",
+        cost: { energy: 1, gold: 0 },
+        logic: ({ player, logEvent }) => {
+          const recruits = Math.max(1, player.relics.length * 2);
+          player.troops += recruits;
+          logEvent(`🕯️ The faithful emerge from the crypts: +${recruits} troops.`);
+        },
+      },
+      {
+        name: "Sanctify",
+        desc: "Burn offerings to empower your zealots.",
+        cost: { energy: 1, gold: 25 },
+        logic: ({ player, logEvent }) => {
+          player.gold += 40;
+          player.happiness = Math.max(0, player.happiness - 1);
+          logEvent("🕯️ Sanctification complete. Wealth flows from fearful believers.");
+        },
+      },
+      {
+        name: "Encamp",
+        desc: "Raise a citadel to shield the faithful.",
+        cost: { energy: 2, gold: 20 },
+        logic: ({ player, logEvent }) => {
+          player.protection += 3;
+          logEvent("⛪ A new citadel rises, bolstering your protection.");
+        },
+      },
+      {
+        name: "Infiltration",
+        desc: "Plant agents among buyers of your relics.",
+        cost: { energy: 1, gold: 0 },
+        logic: ({ player, logEvent }) => {
+          const bonus = Math.max(1, player.declaredWars.length) * 3;
+          player.troops += bonus;
+          logEvent(`🕯️ Hidden agents muster ${bonus} warriors behind enemy lines.`);
+        },
+      },
     ],
     startingRelic: "🕯️ Chalice of Ash",
     defaultTraits: { prowess: "6/10", resilience: "6/10", economy: "3/10" },

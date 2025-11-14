@@ -34,8 +34,10 @@ function renderHUD() {
   `;
 }
 
-function chooseOpponent(actionLabel) {
-  const others = factions.filter(f => f.name !== player.faction.name);
+function chooseOpponent(actionLabel, filterFn = () => true) {
+  const others = factions.filter(
+    f => f.name !== player.faction.name && filterFn(f)
+  );
   if (!others.length) {
     logEvent(`No factions available to ${actionLabel}.`);
     return null;

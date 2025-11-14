@@ -6,8 +6,11 @@ import buildings from "../../data/buildings.js";
 import { calculateResilience, calculateEconomy, calculateProwess, calcStartingEnergy } from "../utils/statCalc.js";
 import { importItems } from "../../data/importItems.js";
 import { battleSpoils } from "../../data/spoils.js";
+import { relics as relicLibrary } from "../../data/relics.js";
 import { startPlayerGame } from "./gameSetup.js";
 console.log("✅ Game JS loaded!");
+
+const relicCatalog = new Map(relicLibrary.map(relic => [relic.name, relic]));
 
 
 /////////////////////////////////////

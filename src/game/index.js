@@ -142,8 +142,12 @@ function showRelicMenu() {
     return;
   }
   const choice = prompt(
-    `Choose a relic to activate (1 energy each):\n${ownedRelics
-      .map((name, i) => `${i + 1}. ${name}`)
+    `Choose a relic to activate (cost varies per relic):\n${ownedRelics
+      .map((name, i) => {
+        const relic = relicCatalog.get(name);
+        const energyCost = relic?.energyCost ?? 1;
+        return `${i + 1}. ${name} — ⚡${energyCost}`;
+      })
       .join("\n")}`
   );
   if (!choice) {
@@ -222,13 +226,13 @@ function acquireRandomRelic(options = {}) {
 
 function attemptRelicCapture(targetFaction) {
   if (!targetFaction) return false;
-  if (Math.random() > 0.33) {
-    logEvent(`${targetFaction.name} protects their relic this time.`);
-    return false;
-  }
   const relicName = factionRelics.get(targetFaction.name);
   if (!relicName) {
     logEvent(`${targetFaction.name} has no relic left to seize.`);
+    return false;
+  }
+  if (Math.random() > 0.33) {
+    logEvent(`${targetFaction.name} protects ${relicName} this time.`);
     return false;
   }
   acquireRelicFromFaction(targetFaction, "battle victory");

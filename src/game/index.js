@@ -417,5 +417,6 @@ function startGame(faction) {
     renderHUD,
     logEvent,
     handleAction,
+    renderFactionAbilities,
   });
 }

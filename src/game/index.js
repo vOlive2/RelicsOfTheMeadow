@@ -268,6 +268,7 @@ let player = {
   canTrade: true,
   relics: [],
   buildings: [],
+  declaredWars: [],
 };
 // 🌅 Start game after DOM loads
 document.addEventListener("DOMContentLoaded", () => {
@@ -285,6 +286,7 @@ function startGame(faction) {
   player.imports = Math.floor(Math.random() * 5) + 1;
   player.relics = [faction.startingRelic || "None"];
   player.buildings = [];
+  player.declaredWars = [];
   updateDerivedStats();
   player.energy = calcStartingEnergy(player);
   renderHUD();

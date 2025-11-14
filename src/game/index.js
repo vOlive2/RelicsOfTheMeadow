@@ -509,6 +509,11 @@ function endTurn() {
     player.gold += player.tradePostIncome;
     logEvent(`📦 Trading Posts delivered ${player.tradePostIncome} gold.`);
   }
+  if (player.relicsUsedThisTurn?.clear) {
+    player.relicsUsedThisTurn.clear();
+  } else {
+    player.relicsUsedThisTurn = new Set();
+  }
   player.canTrade = true;
   player.imports = Math.floor(Math.random() * 5) + 1;
   renderHUD();

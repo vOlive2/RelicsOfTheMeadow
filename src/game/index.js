@@ -459,8 +459,13 @@ function logEvent(msg) {
   log.scrollTop = log.scrollHeight;
 }
 function endTurn() {
-  player.energy = calcStartingEnergy(player);
-  logEvent("🌙 Turn ended. Energy restored!");
+  const restored = calcStartingEnergy(player);
+  player.energy += restored;
+  logEvent(`🌙 Turn ended. Recovered ${restored} energy (total ${player.energy}).`);
+  if (player.tradePostIncome) {
+    player.gold += player.tradePostIncome;
+    logEvent(`📦 Trading Posts delivered ${player.tradePostIncome} gold.`);
+  }
   player.canTrade = true;
   player.imports = Math.floor(Math.random() * 5) + 1;
   renderHUD();

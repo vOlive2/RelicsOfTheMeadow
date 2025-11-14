@@ -3,16 +3,29 @@
 /////////////////////////////////////
 import { calcStartingEnergy } from "../utils/statCalc.js";
 
-export function startPlayerGame({ player, faction, updateDerivedStats, renderHUD, logEvent, handleAction }) {
+export function startPlayerGame({
+  player,
+  faction,
+  updateDerivedStats,
+  renderHUD,
+  logEvent,
+  handleAction,
+  renderFactionAbilities,
+}) {
   applyStartingStats(player, faction);
   player.relics = [faction.startingRelic || "None"];
   player.buildings = [];
   player.declaredWars = [];
   player.alliances = [];
+  player.tradePostIncome = 0;
+  player.economyBonus = 0;
   updateDerivedStats();
   player.energy = calcStartingEnergy(player);
   renderHUD();
   setupActionButtons(handleAction);
+  if (typeof renderFactionAbilities === "function") {
+    renderFactionAbilities();
+  }
   logEvent(`🌿 Welcome, ${faction.name}!`);
 }
 
@@ -27,7 +40,6 @@ export function setupActionButtons(handleAction) {
     { id: "trade", label: "📦 Trade" },
     { id: "collect", label: "💰 Collect Imports" },
     { id: "use-relic", label: "🔮 Use Relic" },
-    { id: "faction-abilities", label: "🧠 Abilities" },
   ];
   actions.forEach(a => {
     const btn = document.createElement("button");
@@ -51,6 +63,8 @@ function applyStartingStats(player, faction) {
   player.imports = Math.floor(Math.random() * 5) + 1;
   player.canTrade = true;
   player.relics = [];
+  player.tradePostIncome = 0;
+  player.economyBonus = 0;
 }
 
 function parseTraitValue(value) {

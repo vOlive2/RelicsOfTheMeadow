@@ -535,6 +535,7 @@ let player = {
   alliances: [],
   tradePostIncome: 0,
   economyBonus: 0,
+  relicsUsedThisTurn: new Set(),
 };
 document.addEventListener("DOMContentLoaded", () => {
   diplomacyModal = document.getElementById("diplomacyModal");

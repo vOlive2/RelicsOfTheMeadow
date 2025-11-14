@@ -36,6 +36,100 @@ function renderHUD() {
     <p>📊 Economy: ${player.economy}/10</p> <br>
     ⚡ Energy: ${player.energy}
   `;
+  renderFactionAbilities();
+}
+
+/////////////////////////////////////
+///// ABILITIES & RELIC POWERS /////
+/////////////////////////////////////
+function renderFactionAbilities() {
+  const container = document.getElementById("abilityButtons");
+  if (!container) return;
+  container.innerHTML = "<h3>Faction Abilities</h3>";
+  if (!player?.faction?.abilities?.length) {
+    const notice = document.createElement("p");
+    notice.textContent = "No special abilities unlocked.";
+    container.appendChild(notice);
+    return;
+  }
+  player.faction.abilities.forEach(ability => {
+    const energyCost = ability?.cost?.energy ?? 0;
+    const goldCost = ability?.cost?.gold ?? 0;
+    const parts = [];
+    if (energyCost) parts.push(`⚡${energyCost}`);
+    if (goldCost) parts.push(`💰${goldCost}`);
+    const label = parts.length ? `${ability.name} (${parts.join(" ")})` : ability.name;
+
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.title = ability.desc;
+    btn.disabled = player.energy < energyCost || player.gold < goldCost;
+    btn.addEventListener("click", () => executeFactionAbility(ability));
+    container.appendChild(btn);
+  });
+}
+
+function executeFactionAbility(ability) {
+  const energyCost = ability?.cost?.energy ?? 0;
+  const goldCost = ability?.cost?.gold ?? 0;
+  const message = ability?.activationMessage || `${ability.name} activated!`;
+  spendEnergyAndGold(energyCost, goldCost, message, () => {
+    if (typeof ability.logic === "function") {
+      ability.logic({
+        player,
+        logEvent,
+        updateDerivedStats,
+      });
+    } else {
+      logEvent(`${ability.name} crackles, but no power responds.`);
+    }
+    updateDerivedStats();
+    renderHUD();
+  });
+}
+
+function showRelicMenu() {
+  const ownedRelics = (player.relics || []).filter(name => name && name !== "None");
+  if (!ownedRelics.length) {
+    logEvent("No relics to activate.");
+    return;
+  }
+  const choice = prompt(
+    `Choose a relic to activate (1 energy each):\n${ownedRelics
+      .map((name, i) => `${i + 1}. ${name}`)
+      .join("\n")}`
+  );
+  if (!choice) {
+    logEvent("Relic activation cancelled.");
+    return;
+  }
+  const index = parseInt(choice, 10) - 1;
+  const relicName = ownedRelics[index];
+  if (!relicName) {
+    logEvent("❌ Invalid relic choice.");
+    return;
+  }
+  const relic = relicCatalog.get(relicName);
+  if (!relic) {
+    logEvent(`${relicName} has no defined power yet.`);
+    return;
+  }
+  const energyCost = relic.energyCost ?? 1;
+  if (player.energy < energyCost) {
+    logEvent("❌ Not enough energy to awaken that relic.");
+    return;
+  }
+  player.energy -= energyCost;
+  if (typeof relic.logic === "function") {
+    relic.logic({
+      player,
+      logEvent,
+    });
+    updateDerivedStats();
+    renderHUD();
+  } else {
+    logEvent(`${relicName} glows faintly, but nothing happens.`);
+  }
 }
 
 /////////////////////////////////////
@@ -290,11 +384,7 @@ function handleAction(action) {
       }
       break;
     case "use-relic":
-      logEvent(`You used ${player.relics.join(", ")}! Magic surges...`);
-      player.energy += 2;
-      break;
-    case "faction-abilities":
-      showFactionAbilities();
+      showRelicMenu();
       break;
     case "end-turn":
       endTurn();

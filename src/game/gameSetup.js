@@ -35,16 +35,22 @@ export function setupActionButtons(handleAction) {
   if (!actionArea) return;
   actionArea.innerHTML = "";
   const actions = [
-    { id: "diplomacy", label: "🕊️ Diplomacy" },
-    { id: "battle", label: "🛡️ Battle" },
-    { id: "build", label: "🔨 Build" },
-    { id: "trade", label: "📦 Trade" },
-    { id: "collect", label: "💰 Collect Imports" },
-    { id: "use-relic", label: "🔮 Use Relic" },
+    { id: "diplomacy", label: "🕊️ Diplomacy", detail: "Manage alliances and rivalries." },
+    { id: "battle", label: "🛡️ Battle", detail: "March troops into combat." },
+    { id: "build", label: "🔨 Build", detail: "Raise new structures." },
+    { id: "trade", label: "📦 Trade", detail: "Exchange goods for bonuses." },
+    { id: "collect", label: "💰 Collect Imports", detail: "Gather income from imports." },
+    { id: "use-relic", label: "🔮 Use Relic", detail: "Awaken an owned relic." },
   ];
   actions.forEach(a => {
     const btn = document.createElement("button");
-    btn.textContent = a.label;
+    btn.classList.add("action-ability-button");
+    const label = document.createElement("span");
+    label.textContent = a.label;
+    const detail = document.createElement("small");
+    detail.textContent = a.detail ?? "";
+    btn.appendChild(label);
+    btn.appendChild(detail);
     btn.dataset.action = a.id;
     btn.addEventListener("click", () => handleAction(a.id));
     actionArea.appendChild(btn);

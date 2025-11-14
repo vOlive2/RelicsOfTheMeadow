@@ -1,5 +1,5 @@
 export function calculateResilience(player) {
-  const total = Math.floor((player.happiness + player.protection)/(player.prowess/2));
+  const total = Math.floor((player.happiness + player.protection)/(player.prowess));
   return Math.min(10, total);
 }
 
@@ -7,8 +7,8 @@ export function calculateEconomy(player) {
   const tradeValue = (player.tradePostIncome || 0) * 5;
   const economyBonus = (player.economyBonus || 0) * 50;
   let gold = player.gold + tradeValue + economyBonus;
-  if (gold < 10) return 1;
-  if (gold < 25) return 2;
+  if (gold < 25) return 1;
+  if (gold < 50) return 2;
   if (gold < 100) return 3;
   if (gold < 250) return 4;
   if (gold < 500) return 5;
@@ -20,7 +20,7 @@ export function calculateEconomy(player) {
 }
 
 export function calculateProwess(player) {
-  const rawProwess = Math.floor((player.troops / 15)+(player.protection / 15)); // sample formula
+  const rawProwess = Math.floor((player.troops / 20)+(player.protection / 20)); // sample formula
   return Math.min(10, rawProwess);
 }
 

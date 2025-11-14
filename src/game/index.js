@@ -96,6 +96,7 @@ function renderFactionAbilities() {
     const energyCost = ability?.cost?.energy ?? 0;
     const goldCost = ability?.cost?.gold ?? 0;
     const btn = document.createElement("button");
+    btn.classList.add("action-ability-button");
     btn.title = ability.desc;
     btn.disabled = player.energy < energyCost || player.gold < goldCost;
 

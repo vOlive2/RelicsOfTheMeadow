@@ -92,6 +92,26 @@ button:hover {
   transform: translateY(-2px);
 }
 
+.ability-box {
+  background: #fff7eb;
+  border: 3px solid #8c6b47;
+  border-radius: 16px;
+  padding: 1em;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+}
+.ability-box h3 {
+  width: 100%;
+  text-align: center;
+  margin: 0 0 0.5em;
+}
+.ability-box button {
+  font-size: 0.7em;
+}
+
 /* 🌙 END TURN BUTTON */
 footer {
   width: 100%;

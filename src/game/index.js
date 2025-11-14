@@ -240,7 +240,7 @@ function attemptRelicCapture(targetFaction) {
 }
 
 /////////////////////////////////////
-///// TARGETING & SPOILS HELPERS /////
+///  TARGETING & SPOILS HELPERS   ///
 /////////////////////////////////////
 function chooseOpponent(actionLabel, filterFn = () => true) {
   const others = factions.filter(

@@ -81,6 +81,135 @@ function grantBattleSpoils(targetFaction, atWar) {
   logEvent(`🏴‍☠️ Claimed ${spoils.name}${warNote} against ${targetFaction.name}. ${rewardText}.`);
 }
 
+let diplomacyModal = null;
+let diplomacyList = null;
+
+function showDiplomacyMenu() {
+  if (!diplomacyModal || !diplomacyList) return;
+  renderDiplomacyMenu();
+  diplomacyModal.classList.add("open");
+}
+
+function hideDiplomacyMenu() {
+  if (diplomacyModal) {
+    diplomacyModal.classList.remove("open");
+  }
+}
+
+function renderDiplomacyMenu() {
+  if (!diplomacyList) return;
+  diplomacyList.innerHTML = "";
+  const others = factions.filter(f => f.name !== player.faction.name);
+  others.forEach(faction => {
+    const isAlly = player.alliances.includes(faction.name);
+    const atWar = player.declaredWars.includes(faction.name);
+    const relation = isAlly ? "🤝 Alliance" : atWar ? "⚔️ At War" : "😐 Neutral";
+
+    const card = document.createElement("div");
+    card.className = "diplomacy-faction";
+    const header = document.createElement("div");
+    header.innerHTML = `<strong>${faction.emoji} ${faction.name}</strong> — ${relation}`;
+    card.appendChild(header);
+
+    const actions = document.createElement("div");
+    actions.className = "diplomacy-actions";
+
+    const allianceBtn = document.createElement("button");
+    allianceBtn.textContent = isAlly ? "Break Alliance" : "Offer Alliance";
+    allianceBtn.addEventListener("click", () => {
+      if (isAlly) {
+        breakAlliance(faction);
+      } else {
+        offerAlliance(faction);
+      }
+      renderDiplomacyMenu();
+    });
+
+    const warBtn = document.createElement("button");
+    if (atWar) {
+      warBtn.textContent = "Offer Peace";
+      warBtn.addEventListener("click", () => {
+        offerPeace(faction);
+        renderDiplomacyMenu();
+      });
+    } else {
+      warBtn.textContent = "Declare War";
+      warBtn.disabled = isAlly;
+      warBtn.title = isAlly ? "Break the alliance first." : "";
+      warBtn.addEventListener("click", () => {
+        startWarWithFaction(faction);
+        renderDiplomacyMenu();
+      });
+    }
+
+    actions.appendChild(allianceBtn);
+    actions.appendChild(warBtn);
+    card.appendChild(actions);
+    diplomacyList.appendChild(card);
+  });
+}
+
+function offerAlliance(faction) {
+  if (player.alliances.includes(faction.name)) {
+    logEvent(`Already allied with ${faction.name}.`);
+    return;
+  }
+  if (player.declaredWars.includes(faction.name)) {
+    logEvent(`Cannot ally with ${faction.name} while at war. Offer peace first.`);
+    return;
+  }
+  const accepted = Math.random() > 0.35;
+  if (accepted) {
+    player.alliances.push(faction.name);
+    logEvent(`🤝 ${faction.name} accepted your alliance offer!`);
+  } else {
+    logEvent(`${faction.name} declined your request for alliance.`);
+  }
+}
+
+function breakAlliance(faction) {
+  if (!player.alliances.includes(faction.name)) {
+    logEvent(`No alliance exists with ${faction.name}.`);
+    return;
+  }
+  player.alliances = player.alliances.filter(name => name !== faction.name);
+  logEvent(`❌ Alliance with ${faction.name} has been dissolved.`);
+}
+
+function startWarWithFaction(faction) {
+  if (player.declaredWars.includes(faction.name)) {
+    logEvent(`Already at war with ${faction.name}.`);
+    return;
+  }
+  if (player.alliances.includes(faction.name)) {
+    logEvent(`Break your alliance with ${faction.name} before declaring war.`);
+    return;
+  }
+  spendEnergyAndGold(
+    4,
+    50,
+    `Declared war on ${faction.name}! Troop count increased.`,
+    () => {
+      player.troops += 10;
+      player.declaredWars.push(faction.name);
+    }
+  );
+}
+
+function offerPeace(faction) {
+  if (!player.declaredWars.includes(faction.name)) {
+    logEvent(`You are not currently at war with ${faction.name}.`);
+    return;
+  }
+  const accepted = Math.random() > 0.5;
+  if (accepted) {
+    player.declaredWars = player.declaredWars.filter(name => name !== faction.name);
+    logEvent(`🕊️ ${faction.name} accepted your peace offer. The war is over.`);
+  } else {
+    logEvent(`${faction.name} rejected your peace proposal. The war continues.`);
+  }
+}
+
 // 🎮 Handle action logic
 function handleAction(action) {
   switch (action) {

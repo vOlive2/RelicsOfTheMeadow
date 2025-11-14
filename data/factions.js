@@ -48,7 +48,7 @@ export const factions = [
     ],
     startingRelic: "🩸 Horn of Fury",
     defaultTraits: { prowess: "9/10", resilience: "2/10", economy: "4/10" },
-    defaultEmojis: { prowess: "9/10", resilience: "2/10", economy: "4/10" },
+    defaultEmojis: { prowess: "🔥🔥🔥🔥🔥", resilience: "🌱", economy: "💰💰" },
 
     relationships: {
       "Devoured Faith": "neutral",
@@ -115,6 +115,8 @@ export const factions = [
     ],
     startingRelic: "🕯️ Chalice of Ash",
     defaultTraits: { prowess: "6/10", resilience: "6/10", economy: "3/10" },
+    defaultEmojis: { prowess: "🔥🔥🔥", resilience: "🌱🌱🌱", economy: "💰" },
+
     relationships: {
       "Devoured Faith": "self",
       "Silken Dominion": "neutral",
@@ -162,6 +164,7 @@ export const factions = [
     ],
     startingRelic: "🐉 Coin of Currents",
     defaultTraits: { prowess: "3/10", resilience: "4/10", economy: "8/10" },
+    defaultEmojis: { prowess: "🔥", resilience: "🌱🌱", economy: "💰💰💰💰" },
     relationships: {
       "Devoured Faith": "neutral",
       "Silken Dominion": "neutral",
@@ -215,6 +218,7 @@ export const factions = [
     ],
     startingRelic: "🌾 Heart of Spring",
     defaultTraits: { prowess: "4/10", resilience: "7/10", economy: "5/10" },
+    defaultEmojis: { prowess: "🔥🔥", resilience: "🌱🌱", economy: "💰💰" },
     relationships: {
       "Devoured Faith": "neutral",
       "Silken Dominion": "neutral",
@@ -267,6 +271,7 @@ export const factions = [
     ],
     startingRelic: "🕸️ Spinner’s Veil",
     defaultTraits: { prowess: "3/10", resilience: "6/10", economy: "6/10" },
+    defaultEmojis: { prowess: "🔥", resilience: "🌱🌱🌱", economy: "💰💰💰" },
     relationships: {
       "Devoured Faith": "neutral",
       "Silken Dominion": "self",

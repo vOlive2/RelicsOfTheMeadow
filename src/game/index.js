@@ -432,6 +432,14 @@ function buildMenu() {
       if (selected.statBoosts.happiness) player.happiness += selected.statBoosts.happiness;
       if (selected.statBoosts.protection) player.protection += selected.statBoosts.protection;
       if (selected.statBoosts.gold) player.gold += selected.statBoosts.gold;
+      if (selected.tradeIncome) {
+        player.tradePostIncome = (player.tradePostIncome || 0) + selected.tradeIncome;
+        logEvent(`📦 Trading Posts now yield +${selected.tradeIncome} gold per turn.`);
+      }
+      if (selected.economyBonus) {
+        player.economyBonus = (player.economyBonus || 0) + selected.economyBonus;
+        logEvent("💹 Your economy strengthens thanks to the new trade hub.");
+      }
     }
   );
 }
@@ -442,12 +450,6 @@ function spendEnergyAndGold(energyCost, goldCost, msg, onSuccess) {
   player.gold -= goldCost;
   logEvent(`✅ ${msg}`);
   if (onSuccess) onSuccess();
-}
-// 🧠 NEED TO UPDATE/REMOVE - BUTTONS WILL DISPLAY AT START OF GAME AND NOT IN LIST
-function showFactionAbilities() {
-  const abilities = player.faction.abilities;
-  logEvent(`🧠 ${player.faction.name}'s Abilities:`);
-  abilities.forEach(a => logEvent(`• ${a.name}: ${a.desc} (Cost: ${a.cost})`));
 }
 function logEvent(msg) {
   const log = document.getElementById("event-log");

@@ -82,16 +82,41 @@ function grantBattleSpoils(targetFaction, atWar) {
 // 🎮 Handle action logic
 function handleAction(action) {
   switch (action) {
-    case "declare-war":
-      spendEnergyAndGold(4, 50, "Declared war! Troop count increased.", () => player.troops += 10);
+    case "declare-war": {
+      const targetFaction = chooseOpponent("declare war on");
+      if (!targetFaction) break;
+      if (player.declaredWars.includes(targetFaction.name)) {
+        logEvent(`Already at war with ${targetFaction.name}.`);
+        break;
+      }
+      spendEnergyAndGold(
+        4,
+        50,
+        `Declared war on ${targetFaction.name}! Troop count increased.`,
+        () => {
+          player.troops += 10;
+          player.declaredWars.push(targetFaction.name);
+        }
+      );
       break;
-    case "battle":
-      spendEnergyAndGold(2, 0, "Fought a battle! Gained troops and protection, lost happiness", () => {
-        player.troops += 10;
-        player.protection = Math.max(0, player.protection + 1);
-        player.happiness = Math.max(0, player.happiness - 1);
-      });
+    }
+    case "battle": {
+      const targetFaction = chooseOpponent("battle");
+      if (!targetFaction) break;
+      const atWar = player.declaredWars.includes(targetFaction.name);
+      spendEnergyAndGold(
+        2,
+        0,
+        `Fought ${targetFaction.name}! Gained troops and protection, lost happiness`,
+        () => {
+          player.troops += 10;
+          player.protection = Math.max(0, player.protection + 1);
+          player.happiness = Math.max(0, player.happiness - 1);
+          grantBattleSpoils(targetFaction, atWar);
+        }
+      );
       break;
+    }
     case "build":
       buildMenu();
       break;

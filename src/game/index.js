@@ -426,41 +426,12 @@ document.addEventListener("DOMContentLoaded", () => {
 }); 
 
 function startGame(faction) {
-  player.faction = faction;
-  player.gold = parseInt(faction.defaultTraits.economy, 10) * 250;
-  player.troops = parseInt(faction.defaultTraits.prowess, 10) * 10;
-  player.happiness = 1;
-  player.protection = 1;
-  player.imports = Math.floor(Math.random() * 5) + 1;
-  player.relics = [faction.startingRelic || "None"];
-  player.buildings = [];
-  player.declaredWars = [];
-  player.alliances = [];
-  updateDerivedStats();
-  player.energy = calcStartingEnergy(player);
-  renderHUD();
-  setupActionButtons();
-  logEvent(`🌿 Welcome, ${faction.name}!`);
-}
-
-function setupActionButtons() {
-  const actionArea = document.getElementById("actionButtons");
-  actionArea.innerHTML = "";
-  const actions = [
-    { id: "diplomacy", label: "🕊️ Diplomacy" },
-    { id: "battle", label: "🛡️ Battle" },
-    { id: "build", label: "🔨 Build" },
-    { id: "trade", label: "📦 Trade" },
-    { id: "collect", label: "💰 Collect Imports" },
-    { id: "use-relic", label: "🔮 Use Relic" },
-    { id: "faction-abilities", label: "🧠 Abilities" },
-  ];
-  actions.forEach(a => {
-    const btn = document.createElement("button");
-    btn.textContent = a.label;
-    btn.dataset.action = a.id;
-    btn.addEventListener("click", () => handleAction(a.id));
-    actionArea.appendChild(btn);
+  startPlayerGame({
+    player,
+    faction,
+    updateDerivedStats,
+    renderHUD,
+    logEvent,
+    handleAction,
   });
-  document.getElementById("endTurnBtn").addEventListener("click", () => handleAction("end-turn"));
 }

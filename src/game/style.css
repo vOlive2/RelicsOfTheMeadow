@@ -62,17 +62,6 @@ main {
 }
 
 
-/* 💰 ACTION BUTTONS AREA */
-#actionButtons {
-  background: #ffedd7;
-  border: 3px solid #8c6b47;
-  border-radius: 16px;
-  padding: 1em;
-  text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  font-size: 1.1em;
-}
-
 /* 🎮 BUTTONS */
 button {
   background: #89c97f;
@@ -110,6 +99,17 @@ button:hover {
 }
 .ability-box button {
   font-size: 0.7em;
+}
+.action-buttons,
+.faction-abilities {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+  width: 100%;
+}
+.action-buttons {
+  margin-bottom: 0.6em;
 }
 
 /* 🌙 END TURN BUTTON */
@@ -153,14 +153,15 @@ footer button:hover {
 
 /* Scrollbar styling */
 #event-log::-webkit-scrollbar {
-  width: 8em;
+  width: 0.5em;
 }
 #event-log::-webkit-scrollbar-thumb {
   background: #8c6b47;
-  border-radius: 4em;
+  border-radius: 2em;
 }
 #event-log::-webkit-scrollbar-track {
   background: #ffedd7;
+  display: none;
 }
 
 /* 🕊️ DIPLOMACY MODAL */
@@ -217,4 +218,5 @@ footer button:hover {
 .diplomacy-actions button {
   font-size: 0.8em;
   margin: 0.2em;
+  
 }

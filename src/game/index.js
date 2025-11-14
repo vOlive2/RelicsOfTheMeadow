@@ -46,7 +46,7 @@ function renderHUD() {
 function renderFactionAbilities() {
   const container = document.getElementById("abilityButtons");
   if (!container) return;
-  container.innerHTML = "<h3>Faction Abilities</h3>";
+  container.innerHTML = "";
   if (!player?.faction) {
     const notice = document.createElement("p");
     notice.textContent = "Select a faction to unlock abilities.";
@@ -189,6 +189,35 @@ function grantBattleSpoils(targetFaction, atWar) {
   logEvent(`🏴‍☠️ Claimed ${spoils.name}${warNote} against ${targetFaction.name}. ${rewardText}.`);
 }
 
+const peacePersonalities = {
+  "The Crimson Horde": "hostile",
+  "The Devoured Faith": "zealous",
+  "The Jade Empire": "pragmatic",
+  "The Meadowfolk Union": "peaceful",
+  "The Silken Dominion": "schemer",
+  "The Mycelial Monarchy": "patient",
+};
+
+function willFactionAcceptPeace(faction) {
+  const attitude = peacePersonalities[faction.name] || "neutral";
+  switch (attitude) {
+    case "hostile":
+      return false;
+    case "peaceful":
+      return true;
+    case "pragmatic":
+      return Math.random() > 0.25;
+    case "schemer":
+      return Math.random() > 0.55;
+    case "zealous":
+      return Math.random() > 0.65;
+    case "patient":
+      return Math.random() > 0.4;
+    default:
+      return Math.random() > 0.5;
+  }
+}
+
 /////////////////////////////////////
 ///      DIPLOMACY MENU LOGIC     ///
 /////////////////////////////////////
@@ -291,7 +320,7 @@ function startWarWithFaction(faction) {
     return;
   }
   spendEnergyAndGold(
-    4,
+    2,
     50,
     `Declared war on ${faction.name}! Troop count increased.`,
     () => {
@@ -305,13 +334,20 @@ function offerPeace(faction) {
     logEvent(`You are not currently at war with ${faction.name}.`);
     return;
   }
-  const accepted = Math.random() > 0.5;
-  if (accepted) {
-    player.declaredWars = player.declaredWars.filter(name => name !== faction.name);
-    logEvent(`🕊️ ${faction.name} accepted your peace offer. The war is over.`);
-  } else {
-    logEvent(`${faction.name} rejected your peace proposal. The war continues.`);
-  }
+  spendEnergyAndGold(
+    2,
+    0,
+    `Opened peace talks with ${faction.name}.`,
+    () => {
+      const accepted = willFactionAcceptPeace(faction);
+      if (accepted) {
+        player.declaredWars = player.declaredWars.filter(name => name !== faction.name);
+        logEvent(`🕊️ ${faction.name} accepted your peace offer. The war is over.`);
+      } else {
+        logEvent(`${faction.name} rejected your peace proposal. The war continues.`);
+      }
+    }
+  );
 }
 
 /////////////////////////////////////

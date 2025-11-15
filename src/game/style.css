@@ -62,18 +62,26 @@ main {
   gap: 1.5em;
 }
 
-/* 🧿 FACTION + STATS INFO */
-#factionList {
-  background: #ffedd7;
-  border: 3px solid #8c6b47;
-  border-radius: 16px;
-  padding: 1.2em;
+.top-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2em;
+}
+
+.stats-panel {
+  background: var(--meadow-cream);
+  border: 3px solid var(--earth-brown);
+  border-radius: 16px;
+  padding: 1em;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* 🧿 FACTION + STATS INFO */
+#factionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.8em 1em;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  font-size: 1em;
-  /* animation: floatPanel 5s ease-in-out infinite alternate; */
+  font-size: 0.95em;
 }
 
 .stats-column {

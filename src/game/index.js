@@ -613,31 +613,6 @@ function aiGatherResources(state) {
 /////////////////////////////////////
 ///  TARGETING & SPOILS HELPERS   ///
 /////////////////////////////////////
-function chooseOpponent(actionLabel, filterFn = () => true) {
-  const others = factions.filter(
-    f => f.name !== player.faction.name && filterFn(f)
-  );
-  if (!others.length) {
-    logEvent(`No factions available to ${actionLabel}.`);
-    return null;
-  }
-  const promptMsg = `Select a faction to ${actionLabel}:\n${others
-    .map((f, i) => `${i + 1}. ${f.emoji} ${f.name}`)
-    .join("\n")}`;
-  const choice = prompt(promptMsg);
-  if (!choice) {
-    logEvent("Selection cancelled.");
-    return null;
-  }
-  const index = parseInt(choice, 10) - 1;
-  const selectedFaction = others[index];
-  if (!selectedFaction) {
-    logEvent("❌ Invalid faction choice.");
-    return null;
-  }
-  return selectedFaction;
-}
-
 function grantBattleSpoils(targetFaction, atWar) {
   if (!battleSpoils || !battleSpoils.length) return;
   const spoils = battleSpoils[Math.floor(Math.random() * battleSpoils.length)];
@@ -658,6 +633,73 @@ function grantBattleSpoils(targetFaction, atWar) {
   const warNote = atWar ? " (war spoils doubled!)" : "";
   const rewardText = gains.length ? gains.join(", ") : "No tangible gains";
   logEvent(`🏴‍☠️ Claimed ${spoils.name}${warNote} against ${targetFaction.name}. ${rewardText}.`);
+}
+
+function getBattleTargets() {
+  return factions.filter(
+    f => f.name !== player.faction.name && !player.alliances.includes(f.name)
+  );
+}
+
+function showBattleModal() {
+  if (player.troops <= 0) {
+    logEvent("🪖 Your armies are too depleted to battle.");
+    return;
+  }
+  if (player.energy < 3) {
+    logEvent("⚡ Not enough energy to battle.");
+    return;
+  }
+  const availableTargets = getBattleTargets();
+  if (!availableTargets.length) {
+    logEvent("All factions are presently allied with you. Break an alliance before battling.");
+    return;
+  }
+  openActionModal("⚔️ Choose a target", body => {
+    const grid = document.createElement("div");
+    grid.className = "build-grid battle-grid";
+    availableTargets.forEach(target => {
+      const relation = player.declaredWars.includes(target.name) ? "At War" : "Neutral";
+      const card = document.createElement("button");
+      card.className = "build-card battle-card";
+      card.disabled = player.energy < 3;
+      card.innerHTML = `
+        <strong>${target.emoji} ${target.name}</strong>
+        <p class="battle-summary">${target.overview || "Their intentions are unknown."}</p>
+        <div class="battle-meta">
+          <span>${relation}</span>
+          <span>Focus: ${target.defaultTraits?.prowess ?? "?"}</span>
+        </div>
+      `;
+      card.addEventListener("click", () => {
+        closeActionModal();
+        executeBattle(target);
+      });
+      grid.appendChild(card);
+    });
+    body.appendChild(grid);
+  });
+}
+
+function executeBattle(targetFaction) {
+  const atWar = player.declaredWars.includes(targetFaction.name);
+  const projectedLoss = Math.max(3, Math.floor(player.troops * 0.15));
+  const troopLoss = Math.min(player.troops, projectedLoss);
+  spendEnergyAndGold(
+    3,
+    0,
+    `⚔️ Clashed with ${targetFaction.name}. Lost ${troopLoss} troops but gained grit.`,
+    () => {
+      const mitigation = player.battleBonus || 0;
+      player.troops = Math.max(0, player.troops - Math.max(0, troopLoss - mitigation));
+      player.protection = Math.max(0, player.protection + 1);
+      player.happiness = Math.max(0, player.happiness - 1);
+      const captured = attemptRelicCapture(targetFaction);
+      if (!captured) {
+        grantBattleSpoils(targetFaction, atWar);
+      }
+    }
+  );
 }
 
 const peacePersonalities = {
@@ -882,40 +924,9 @@ function handleAction(action) {
     case "diplomacy":
       showDiplomacyMenu();
       break;
-    case "battle": {
-      if (player.troops <= 0) {
-        logEvent("🪖 Your armies are too depleted to battle.");
-        break;
-      }
-      const availableTargets = factions.filter(
-        f => f.name !== player.faction.name && !player.alliances.includes(f.name)
-      );
-      if (!availableTargets.length) {
-        logEvent("All factions are presently allied with you. Break an alliance before battling.");
-        break;
-      }
-      const targetFaction = chooseOpponent("battle", f => !player.alliances.includes(f.name));
-      if (!targetFaction) break;
-      const atWar = player.declaredWars.includes(targetFaction.name);
-      const projectedLoss = Math.max(3, Math.floor(player.troops * 0.15));
-      const troopLoss = Math.min(player.troops, projectedLoss);
-      spendEnergyAndGold(
-        3,
-        0,
-        `⚔️ Clashed with ${targetFaction.name}. Lost ${troopLoss} troops but gained grit.`,
-        () => {
-          const mitigation = player.battleBonus || 0;
-          player.troops = Math.max(0, player.troops - Math.max(0, troopLoss - mitigation));
-          player.protection = Math.max(0, player.protection + 1);
-          player.happiness = Math.max(0, player.happiness - 1);
-          const captured = attemptRelicCapture(targetFaction);
-          if (!captured) {
-            grantBattleSpoils(targetFaction, atWar);
-          }
-        }
-      );
+    case "battle":
+      showBattleModal();
       break;
-    }
     case "build":
       buildMenu();
       break;
@@ -1198,6 +1209,51 @@ function recalcHarvestedGoodsValue() {
 
 function getTotalHarvestedGoods() {
   return Object.values(player.harvestedGoods || {}).reduce((sum, count) => sum + count, 0);
+}
+
+function canPayActionCost(btn) {
+  const energyCost = Number(btn?.dataset?.costEnergy || 0);
+  const goldCost = Number(btn?.dataset?.costGold || 0);
+  if (energyCost && player.energy < energyCost) return false;
+  if (goldCost && player.gold < goldCost) return false;
+  return true;
+}
+
+function hasBuildableOptions() {
+  return buildings.some(b => {
+    const factionAllowed =
+      b.availableTo === "all" ||
+      (Array.isArray(b.availableTo) && b.availableTo.includes(player.faction.name));
+    if (!factionAllowed) return false;
+    const prereqMet = !b.preRec || b.preRec === "none" || player.buildings.includes(b.preRec);
+    if (!prereqMet) return false;
+    const builtCount = player.buildings.filter(item => item === b.name).length;
+    const cost = getScaledCost(b.cost, builtCount);
+    return player.energy >= cost.energy && player.gold >= cost.gold;
+  });
+}
+
+function canHarvestNow() {
+  const limit = player.harvestLimit || 0;
+  if (!limit || player.harvestsLeft <= 0) return false;
+  return getActiveHarvestGoods().length > 0;
+}
+
+function hasCommerceOpportunity() {
+  const hasImports = player.imports > 0;
+  const canTrade =
+    (player.tradePosts || 0) > 0 &&
+    (player.tradesRemaining || 0) > 0 &&
+    getTotalHarvestedGoods() > 0;
+  return hasImports || canTrade;
+}
+
+function hasUsableRelic() {
+  return (player.relics || []).some(name => name && name !== "None");
+}
+
+function hasBattleTargets() {
+  return player.troops > 0 && getBattleTargets().length > 0;
 }
 
 function formatActionCost(btn) {

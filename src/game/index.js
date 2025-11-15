@@ -619,40 +619,11 @@ function handleAction(action) {
     case "harvest":
       harvestCrops();
       break;
-    case "trade":
-      performTrade();
+    case "commerce":
+      showCommerceModal();
       break;
-    case "collect":
-      if (player.imports > 0) {
-        player.imports--;
-        const importItem = importItems[Math.floor(Math.random() * importItems.length)];
-        const bonuses = [];
-        if (importItem.statBoosts.happiness) {
-          player.happiness += importItem.statBoosts.happiness;
-          bonuses.push(`${importItem.statBoosts.happiness} happiness`);
-        }
-        if (importItem.statBoosts.protection) {
-          player.protection += importItem.statBoosts.protection;
-          bonuses.push(`${importItem.statBoosts.protection} protection`);
-        }
-        if (importItem.statBoosts.troops) {
-          player.troops += importItem.statBoosts.troops;
-          bonuses.push(`${importItem.statBoosts.troops} troops`);
-        }
-        if (importItem.statBoosts.energy) {
-          player.energy += importItem.statBoosts.energy;
-          bonuses.push(`${importItem.statBoosts.energy} energy`);
-        }
-        const bonusMsg = bonuses.length ? ` and bonus ${bonuses.join(", ")}` : "";
-        spendEnergyAndGold(
-          0,
-          0,
-          `📥 Collected imported ${importItem.name}! Gained ${importItem.price} gold${bonusMsg}!`,
-          () => (player.gold += importItem.price)
-        );
-      } else {
-        logEvent("📭 No imports to collect!");
-      }
+    case "recruit":
+      recruitTroops();
       break;
     case "delve":
       attemptRelicDelve();

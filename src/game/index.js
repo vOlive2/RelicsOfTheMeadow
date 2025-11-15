@@ -624,11 +624,11 @@ function handleAction(action) {
         spendEnergyAndGold(
           0,
           0,
-          `Collected imported ${importItem.name}! Gained ${importItem.price} gold${bonusMsg}!`,
+          `📥 Collected imported ${importItem.name}! Gained ${importItem.price} gold${bonusMsg}!`,
           () => (player.gold += importItem.price)
         );
       } else {
-        logEvent("No imports to collect!");
+        logEvent("📭 No imports to collect!");
       }
       break;
     case "delve":

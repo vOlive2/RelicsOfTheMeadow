@@ -396,6 +396,10 @@ footer button:hover {
   font-size: 0.85em;
 }
 
+.inventory-info strong {
+  color: var(--ink);
+}
+
 .inventory-goods {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

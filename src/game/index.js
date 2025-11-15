@@ -15,7 +15,6 @@ const availableDelveRelics = new Set(relicLibrary.map(relic => relic.name));
 const factionRelics = new Map();
 factions.forEach(f => {
   factionRelics.set(f.name, f.startingRelic || null);
-  markRelicClaimed(f.startingRelic);
 });
 
 const harvestableGoods = [
@@ -23,8 +22,22 @@ const harvestableGoods = [
   { key: "herbs", name: "Grove Herbs", emoji: "🌿", value: 20 },
   { key: "timber", name: "Lumber Bundles", emoji: "🪵", value: 24 },
   { key: "supplies", name: "Packed Supplies", emoji: "🎒", value: 22 },
+  { key: "ore", name: "Shimmer Ore", emoji: "⛏️", value: 26 },
 ];
-const harvestGoodsMap = new Map(harvestableGoods.map(g => [g.key, g]));
+const factionHarvestGoods = {
+  "The Crimson Horde": [{ key: "war_spoils", name: "War Spoils", emoji: "🩸", value: 32 }],
+  "The Devoured Faith": [{ key: "relic_shard", name: "Relic Shard", emoji: "🕯️", value: 28 }],
+  "The Jade Empire": [{ key: "trade_seal", name: "Trade Seal", emoji: "🐉", value: 30 }],
+  "The Meadowfolk Union": [{ key: "sun_petals", name: "Sun Petals", emoji: "🌻", value: 24 }],
+  "The Silken Dominion": [{ key: "silk_spool", name: "Silk Spool", emoji: "🧵", value: 27 }],
+  "The Mycelial Monarchy": [{ key: "spore_bloom", name: "Spore Bloom", emoji: "🍄", value: 29 }],
+};
+const harvestGoodsMap = new Map();
+function registerHarvestGoods(list) {
+  list.forEach(good => harvestGoodsMap.set(good.key, good));
+}
+registerHarvestGoods(harvestableGoods);
+Object.values(factionHarvestGoods).forEach(list => registerHarvestGoods(list));
 const HARVEST_ENERGY_COST = 1;
 const RELIC_DELVE_COST = { energy: 5, gold: 250 };
 const RECRUIT_COST = { energy: 2, gold: 40 };
@@ -32,6 +45,25 @@ const COMMERCE_TRADE_COST = { energy: 1, gold: 0 };
 const ALLIANCE_COST = { energy: 1, gold: 30 };
 const DECLARE_WAR_COST = { energy: 2, gold: 50 };
 const PEACE_COST_ENERGY = 2;
+const aiStates = new Map();
+
+function getActiveHarvestGoods() {
+  const goods = [...harvestableGoods];
+  const factionExtras = player?.faction ? factionHarvestGoods[player.faction.name] : null;
+  if (factionExtras) goods.push(...factionExtras);
+  if (player?.extraHarvestGoods?.length) goods.push(...player.extraHarvestGoods);
+  return goods;
+}
+
+function getHarvestCatalog() {
+  const map = new Map();
+  getActiveHarvestGoods().forEach(g => {
+    if (!map.has(g.key)) {
+      map.set(g.key, g);
+    }
+  });
+  return [...map.values()];
+}
 
 
 /////////////////////////////////////
@@ -304,6 +336,280 @@ function attemptRelicCapture(targetFaction) {
   return true;
 }
 
+function attemptPlayerRelicTheft(attackerName, baseChance = 0.35) {
+  const owned = (player.relics || []).filter(name => name && name !== "None");
+  if (!owned.length) {
+    logEvent(`${attackerName} found no relics worth stealing.`);
+    return false;
+  }
+  const shield = player.relicShield || 0;
+  const successChance = Math.max(0.05, baseChance - shield * 0.05);
+  if (Math.random() > successChance) {
+    logEvent(`${attackerName} failed to breach your vaults.`);
+    return false;
+  }
+  const index = Math.floor(Math.random() * owned.length);
+  const relicName = owned[index];
+  const removalIndex = player.relics.indexOf(relicName);
+  if (removalIndex >= 0) {
+    player.relics.splice(removalIndex, 1);
+  }
+  factionRelics.set(attackerName, relicName);
+  logEvent(`🕵️ ${attackerName} stole ${relicName} from your vaults!`);
+  return true;
+}
+
+const aiAggressionTendencies = {
+  "The Crimson Horde": 0.7,
+  "The Devoured Faith": 0.5,
+  "The Jade Empire": 0.2,
+  "The Meadowfolk Union": 0.15,
+  "The Silken Dominion": 0.4,
+  "The Mycelial Monarchy": 0.45,
+};
+
+const aiDiplomacyTendencies = {
+  "The Crimson Horde": 0.2,
+  "The Devoured Faith": 0.25,
+  "The Jade Empire": 0.5,
+  "The Meadowfolk Union": 0.6,
+  "The Silken Dominion": 0.35,
+  "The Mycelial Monarchy": 0.3,
+};
+
+const aiAbilityEffects = {
+  Taxes: state => {
+    const levy = Math.min(player.gold, 25 + player.economy);
+    player.gold -= levy;
+    state.gold = (state.gold || 0) + levy;
+    logEvent(`🐉 ${state.faction.name} taxes your caravans for ${levy} gold.`);
+  },
+  Diplomats: state => {
+    if (player.declaredWars.includes(state.faction.name)) {
+      player.declaredWars = player.declaredWars.filter(name => name !== state.faction.name);
+      logEvent(`🐉 ${state.faction.name} enforces diplomatic peace and exits the war.`);
+    } else {
+      player.happiness += 1;
+      logEvent(`🐉 ${state.faction.name}'s diplomats soothe tensions, boosting happiness.`);
+    }
+  },
+  Loot: state => {
+    const theft = Math.min(player.gold, 15 + Math.round((state.aggression || 0.3) * 30));
+    player.gold -= theft;
+    state.gold = (state.gold || 0) + theft;
+    logEvent(`🐺 ${state.faction.name} loot ${theft} gold from your border towns.`);
+  },
+  Raid: () => {
+    const loss = Math.min(player.troops, 5 + Math.round(player.protection / 2));
+    player.troops = Math.max(0, player.troops - loss);
+    player.happiness = Math.max(0, player.happiness - 1);
+    logEvent(`🐺 Horde raiders cut down ${loss} of your troops and demoralize the people.`);
+  },
+  Consume: () => {
+    const drain = Math.min(player.energy, 2);
+    player.energy -= drain;
+    logEvent(`🐺 Horde zealots burn your supply lines, draining ${drain} energy.`);
+  },
+  Delve: state => {
+    if (!attemptPlayerRelicTheft(state.faction.name, 0.55)) {
+      logEvent(`🕯️ ${state.faction.name} failed to recover a relic from you.`);
+    }
+  },
+  Sanctify: () => {
+    const tithe = Math.min(player.gold, 20);
+    player.gold -= tithe;
+    player.happiness = Math.max(0, player.happiness - 1);
+    logEvent(`🕯️ The Devoured Faith sanctifies your markets, seizing ${tithe} gold.`);
+  },
+  Encamp: () => {
+    player.protection = Math.max(0, player.protection - 1);
+    logEvent("🕯️ Faith encampments unsettle your border, lowering protection.");
+  },
+  Infiltration: state => {
+    if (!attemptPlayerRelicTheft(state.faction.name, 0.65)) {
+      player.gold = Math.max(0, player.gold - 15);
+      logEvent(`🕯️ ${state.faction.name} siphons 15 gold through infiltration.`);
+    }
+  },
+  Harmony: () => {
+    player.happiness += 1;
+    player.protection += 1;
+    logEvent("🌾 Meadowfolk harmony radiates outward, lifting spirits and defenses.");
+  },
+  Cooperation: () => {
+    player.harvestedGoods = player.harvestedGoods || {};
+    player.harvestedGoods.wheat = (player.harvestedGoods.wheat || 0) + 1;
+    logEvent("🌾 Meadowfolk share a crate of wheat with you.");
+    recalcHarvestedGoodsValue();
+  },
+  Regrow: () => {
+    player.harvestsLeft = Math.min(player.harvestLimit, (player.harvestsLeft || 0) + 2);
+    logEvent("🌾 Meadowfolk regrow your fields, restoring harvest chances.");
+  },
+  SpinWeb: () => {
+    player.tradesRemaining = Math.max(0, (player.tradesRemaining || 0) - 1);
+    logEvent("🕷️ Silken Dominion webs delay one of your trade missions.");
+  },
+  Manipulate: () => {
+    player.happiness = Math.max(0, player.happiness - 1);
+    logEvent("🕷️ Silken agents spread rumors, dinging happiness.");
+  },
+  Entangle: () => {
+    const energySnare = Math.min(player.energy, 1);
+    player.energy -= energySnare;
+    logEvent("🕷️ Entangling strands sap a bit of your energy.");
+  },
+  Spread: () => {
+    player.protection = Math.max(0, player.protection - 1);
+    logEvent("🍄 Spores spread through your ramparts, weakening protection.");
+  },
+  Bloom: () => {
+    player.happiness = Math.max(0, player.happiness - 1);
+    logEvent("🍄 Mycelial blooms unsettle the populace, lowering happiness.");
+  },
+  Rebirth: () => {
+    player.harvestedGoods = player.harvestedGoods || {};
+    if (player.harvestedGoods.spore_bloom) {
+      player.harvestedGoods.spore_bloom = Math.max(0, player.harvestedGoods.spore_bloom - 1);
+    }
+    player.energy = Math.max(0, player.energy - 1);
+    logEvent("🍄 A spore rebirth consumes supplies, draining a little energy.");
+    recalcHarvestedGoodsValue();
+  },
+};
+
+function initializeAIStates(playerFaction) {
+  aiStates.clear();
+  factions.forEach(faction => {
+    if (faction.name === playerFaction.name) return;
+    aiStates.set(faction.name, createAIState(faction));
+  });
+}
+
+function createAIState(faction) {
+  const parse = value => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = parseInt(value, 10);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    return 3;
+  };
+  return {
+    faction,
+    gold: parse(faction.defaultTraits?.economy) * 20 + 100,
+    troops: parse(faction.defaultTraits?.prowess) * 10 + 40,
+    resilience: parse(faction.defaultTraits?.resilience) + 5,
+    aggression: aiAggressionTendencies[faction.name] ?? 0.3,
+    diplomacy: aiDiplomacyTendencies[faction.name] ?? 0.3,
+  };
+}
+
+function processAIFactionTurns() {
+  aiStates.forEach(state => executeAIFactionTurn(state));
+}
+
+function executeAIFactionTurn(state) {
+  const factionName = state.faction.name;
+  logEvent(`🤖 It is now ${state.faction.emoji} ${factionName}'s turn.`);
+  resolvePendingPeaceFor(state);
+  if (player.declaredWars.includes(factionName)) {
+    aiWarSkirmish(state);
+    return;
+  }
+  if (!player.alliances.includes(factionName) && Math.random() < state.diplomacy * 0.4) {
+    aiRequestAlliance(state);
+    return;
+  }
+  if (Math.random() < state.aggression * 0.5) {
+    aiDeclareWarOnPlayer(state);
+    return;
+  }
+  if ((state.faction.abilities || []).length && Math.random() < 0.6) {
+    aiUseAbility(state);
+  } else {
+    aiGatherResources(state);
+  }
+}
+
+function resolvePendingPeaceFor(state) {
+  if (!Array.isArray(player.pendingPeaceOffers)) return;
+  const offer = player.pendingPeaceOffers.find(entry => entry.faction === state.faction.name);
+  if (!offer) return;
+  offer.turnsRemaining -= 1;
+  if (offer.turnsRemaining > 0) return;
+  const accepted = willFactionAcceptPeace(state.faction);
+  if (accepted) {
+    player.declaredWars = player.declaredWars.filter(name => name !== state.faction.name);
+    logEvent(`🕊️ ${state.faction.name} accepts your peace proposal.`);
+  } else {
+    logEvent(`${state.faction.name} rejects your peace envoy.`);
+  }
+  player.pendingPeaceOffers = player.pendingPeaceOffers.filter(entry => entry !== offer);
+}
+
+function aiWarSkirmish(state) {
+  const loss = Math.max(1, Math.round((state.troops || 30) / 12));
+  player.troops = Math.max(0, player.troops - loss);
+  const plunder = Math.min(player.gold, 10 + loss * 2);
+  player.gold -= plunder;
+  state.gold = (state.gold || 0) + plunder;
+  logEvent(
+    `${state.faction.emoji} ${state.faction.name} raids your lands, costing ${loss} troops and ${plunder} gold.`
+  );
+  if (Math.random() < 0.3) {
+    attemptPlayerRelicTheft(state.faction.name);
+  }
+}
+
+function aiRequestAlliance(state) {
+  if (player.declaredWars.includes(state.faction.name)) return;
+  logEvent(`${state.faction.emoji} ${state.faction.name} requests an alliance.`);
+  const acceptChance = 0.5 + (player.happiness > 5 ? 0.15 : 0);
+  if (Math.random() < acceptChance) {
+    if (!player.alliances.includes(state.faction.name)) {
+      player.alliances.push(state.faction.name);
+    }
+    player.declaredWars = player.declaredWars.filter(name => name !== state.faction.name);
+    logEvent(`🤝 You accept the alliance with ${state.faction.name}.`);
+  } else {
+    logEvent(`❌ You decline ${state.faction.name}'s offer, keeping them at arm's length.`);
+  }
+}
+
+function aiDeclareWarOnPlayer(state) {
+  if (player.declaredWars.includes(state.faction.name)) return;
+  player.alliances = player.alliances.filter(name => name !== state.faction.name);
+  player.declaredWars.push(state.faction.name);
+  logEvent(`⚔️ ${state.faction.name} declares war on you!`);
+}
+
+function aiUseAbility(state) {
+  const abilities = state.faction.abilities || [];
+  if (!abilities.length) {
+    aiGatherResources(state);
+    return;
+  }
+  const ability = abilities[Math.floor(Math.random() * abilities.length)];
+  applyAIAbilityEffect(state, ability);
+}
+
+function applyAIAbilityEffect(state, ability) {
+  const fn = aiAbilityEffects[ability.name];
+  if (fn) {
+    fn(state);
+  } else {
+    logEvent(`${state.faction.emoji} ${state.faction.name} practices ${ability.name}, plotting silently.`);
+  }
+}
+
+function aiGatherResources(state) {
+  const haul = 10 + Math.floor(Math.random() * 10);
+  state.gold = (state.gold || 0) + haul;
+  state.troops = (state.troops || 0) + 2;
+  logEvent(`${state.faction.emoji} ${state.faction.name} consolidates, earning ${haul} gold.`);
+}
+
 /////////////////////////////////////
 ///  TARGETING & SPOILS HELPERS   ///
 /////////////////////////////////////
@@ -556,20 +862,16 @@ function offerPeace(faction) {
     logEvent(`You are not currently at war with ${faction.name}.`);
     return;
   }
-  spendEnergyAndGold(
-    PEACE_COST_ENERGY,
-    0,
-    `🕊️ Opened peace talks with ${faction.name}.`,
-    () => {
-      const accepted = willFactionAcceptPeace(faction);
-      if (accepted) {
-        player.declaredWars = player.declaredWars.filter(name => name !== faction.name);
-        logEvent(`🕊️ ${faction.name} accepted your peace offer. The war is over.`);
-      } else {
-        logEvent(`${faction.name} rejected your peace proposal. The war continues.`);
-      }
-    }
-  );
+  const alreadyPending = player.pendingPeaceOffers?.some(entry => entry.faction === faction.name);
+  if (alreadyPending) {
+    logEvent(`🕊️ A peace envoy is already en route to ${faction.name}.`);
+    return;
+  }
+  spendEnergyAndGold(PEACE_COST_ENERGY, 0, `🕊️ Opened peace talks with ${faction.name}.`, () => {
+    if (!Array.isArray(player.pendingPeaceOffers)) player.pendingPeaceOffers = [];
+    player.pendingPeaceOffers.push({ faction: faction.name, turnsRemaining: 1 });
+    logEvent(`📜 Await ${faction.name}'s response next round.`);
+  });
 }
 
 /////////////////////////////////////
@@ -602,7 +904,8 @@ function handleAction(action) {
         0,
         `⚔️ Clashed with ${targetFaction.name}. Lost ${troopLoss} troops but gained grit.`,
         () => {
-          player.troops = Math.max(0, player.troops - troopLoss);
+          const mitigation = player.battleBonus || 0;
+          player.troops = Math.max(0, player.troops - Math.max(0, troopLoss - mitigation));
           player.protection = Math.max(0, player.protection + 1);
           player.happiness = Math.max(0, player.happiness - 1);
           const captured = attemptRelicCapture(targetFaction);
@@ -644,13 +947,18 @@ function handleAction(action) {
 ///     ECONOMY & LOG HELPERS     ///
 /////////////////////////////////////
 function harvestCrops() {
-  const limit = player.harvestLimit || 5;
+  const limit = player.harvestLimit || 0;
   if (player.harvestsLeft <= 0) {
     logEvent("🌱 The fields need rest. Wait until next turn to harvest again.");
     return;
   }
+  const goodsPool = getActiveHarvestGoods();
+  if (!goodsPool.length) {
+    logEvent("🌾 You have no cultivated goods to harvest yet.");
+    return;
+  }
   spendEnergyAndGold(HARVEST_ENERGY_COST, 0, null, () => {
-    const bounty = harvestableGoods[Math.floor(Math.random() * harvestableGoods.length)];
+    const bounty = goodsPool[Math.floor(Math.random() * goodsPool.length)];
     player.harvestedGoods[bounty.key] = (player.harvestedGoods[bounty.key] || 0) + 1;
     player.harvestsLeft = Math.max(0, player.harvestsLeft - 1);
     recalcHarvestedGoodsValue();
@@ -740,7 +1048,7 @@ function collectImportCrate(onSuccess) {
 }
 
 function recruitTroops() {
-  const recruits = Math.max(1, player.prowess);
+  const recruits = Math.max(1, player.prowess + (player.recruitBonus || 0));
   spendEnergyAndGold(
     RECRUIT_COST.energy,
     RECRUIT_COST.gold,
@@ -778,19 +1086,19 @@ function showInventoryPanel() {
     info.className = "inventory-info";
     info.innerHTML = `
       <div>🚢 Imports waiting: <strong>${player.imports}</strong></div>
-      <div>🌾 Harvests left: <strong>${player.harvestsLeft}/${player.harvestLimit || 5}</strong></div>
+      <div>🌾 Harvests left: <strong>${player.harvestsLeft}/${player.harvestLimit || 0}</strong></div>
       <div>📦 Trades left: <strong>${player.tradesRemaining}/${player.tradePosts || 0}</strong></div>
       <div>🛒 Trade Posts: <strong>${player.tradePosts || 0}</strong></div>
     `;
     const goodsGrid = document.createElement("div");
     goodsGrid.className = "inventory-goods";
-    harvestableGoods.forEach(g => {
+    getHarvestCatalog().forEach(g => {
       const item = document.createElement("div");
       item.className = "inventory-good";
       item.innerHTML = `<span>${g.emoji}</span>
         <div>
           <strong>${g.name}</strong>
-          <small>${player.harvestedGoods[g.key] || 0} crate(s)</small>
+          <small>${(player.harvestedGoods && player.harvestedGoods[g.key]) || 0} crate(s)</small>
         </div>`;
       goodsGrid.appendChild(item);
     });
@@ -816,6 +1124,13 @@ function renderCommerceContent(container) {
     <div>📥 Imports waiting: <strong>${player.imports}</strong></div>
   `;
   container.appendChild(summary);
+  if (player.faction && factionHarvestGoods[player.faction.name]) {
+    const note = document.createElement("p");
+    note.className = "commerce-note";
+    const names = factionHarvestGoods[player.faction.name].map(g => g.name).join(", ");
+    note.textContent = `${player.faction.emoji} Specialty harvests active: ${names}.`;
+    container.appendChild(note);
+  }
 
   const exportsSection = document.createElement("section");
   exportsSection.className = "commerce-section";
@@ -823,9 +1138,9 @@ function renderCommerceContent(container) {
   const goodsGrid = document.createElement("div");
   goodsGrid.className = "inventory-goods";
   const economyMultiplier = Math.max(1, Math.pow(player.economy / 5 + 1, 1.05));
-  const tradeStrength = 1 + player.tradePosts * 0.15;
-  harvestableGoods.forEach(good => {
-    const count = player.harvestedGoods[good.key] || 0;
+  const tradeStrength = 1 + (player.tradePosts || 0) * 0.15;
+  getHarvestCatalog().forEach(good => {
+    const count = (player.harvestedGoods && player.harvestedGoods[good.key]) || 0;
     const payout = Math.round(good.value * economyMultiplier * tradeStrength);
     const card = document.createElement("div");
     card.className = "inventory-good commerce-good";
@@ -913,7 +1228,7 @@ function updateActionIndicators() {
     switch (actionId) {
       case "harvest":
         if (labelEl) {
-          labelEl.textContent = `🌾 Harvest (${player.harvestsLeft}/${player.harvestLimit || 5})`;
+          labelEl.textContent = `🌾 Harvest (${player.harvestsLeft}/${player.harvestLimit || 0})`;
         }
         detailText += ` • Goods stored: ${getTotalHarvestedGoods()}`;
         if (player.harvestsLeft <= 0 || player.energy < HARVEST_ENERGY_COST) {
@@ -928,6 +1243,9 @@ function updateActionIndicators() {
           labelEl.textContent = `🏛️ Commerce (${player.tradesRemaining}/${player.tradePosts || 0})`;
         }
         detailText += ` • Imports waiting: ${player.imports}`;
+        if (!player.tradePosts) {
+          detailText += " • Build a Trading Post to unlock exports.";
+        }
         break;
       case "delve":
         if (labelEl) {
@@ -939,7 +1257,7 @@ function updateActionIndicators() {
         }
         break;
       case "recruit":
-        detailText += ` • Gain ${Math.max(1, player.prowess)} troops`;
+        detailText += ` • Gain ${Math.max(1, player.prowess + (player.recruitBonus || 0))} troops`;
         break;
       case "use-relic": {
         const ownedRelics = (player.relics || []).filter(name => name && name !== "None").length;
@@ -962,6 +1280,16 @@ function updateActionIndicators() {
   });
 }
 
+const BUILD_COST_STEP = 0.2;
+
+function getScaledCost(cost, builtCount) {
+  const multiplier = 1 + builtCount * BUILD_COST_STEP;
+  return {
+    gold: Math.round(cost.gold * multiplier),
+    energy: cost.energy,
+  };
+}
+
 function buildMenu() {
   const available = buildings.filter(b => {
     const factionAllowed =
@@ -981,7 +1309,8 @@ function buildMenu() {
     available.forEach(b => {
       const builtCount = player.buildings.filter(item => item === b.name).length;
       const prereqMet = !b.preRec || b.preRec === "none" || player.buildings.includes(b.preRec);
-      const hasResources = player.gold >= b.cost.gold && player.energy >= b.cost.energy;
+      const scaledCost = getScaledCost(b.cost, builtCount);
+      const hasResources = player.gold >= scaledCost.gold && player.energy >= scaledCost.energy;
       const card = document.createElement("button");
       card.className = "build-card";
       if (!prereqMet) {
@@ -994,18 +1323,24 @@ function buildMenu() {
         <strong>${b.name}</strong>
         <p class="build-desc">${b.description}</p>
         <div class="build-meta">
-          <span>💰 ${b.cost.gold}</span>
-          <span>⚡ ${b.cost.energy}</span>
+          <span>💰 ${scaledCost.gold}</span>
+          <span>⚡ ${scaledCost.energy}</span>
           <span>🏛️ ${builtCount}</span>
         </div>
         <div class="card-status">
-          ${!prereqMet ? `Requires ${b.preRec}` : hasResources ? "Ready to build" : "Need more resources"}
+          ${
+            !prereqMet
+              ? `Requires ${b.preRec}`
+              : hasResources
+              ? "Ready to build"
+              : "Need more resources"
+          }
         </div>
       `;
       if (prereqMet && hasResources) {
         card.addEventListener("click", () => {
           closeActionModal();
-          purchaseBuilding(b);
+          purchaseBuilding(b, scaledCost);
         });
       }
       grid.appendChild(card);
@@ -1014,10 +1349,12 @@ function buildMenu() {
   });
 }
 
-function purchaseBuilding(selected) {
+function purchaseBuilding(selected, scaledCost) {
+  const builtCount = player.buildings.filter(item => item === selected.name).length;
+  const cost = scaledCost || getScaledCost(selected.cost, builtCount);
   spendEnergyAndGold(
-    selected.cost.energy,
-    selected.cost.gold,
+    cost.energy,
+    cost.gold,
     `🏗️ Built ${selected.name}!`,
     () => {
       player.buildings.push(selected.name);
@@ -1039,6 +1376,34 @@ function purchaseBuilding(selected) {
           (player.tradesRemaining || 0) + 1
         );
         logEvent(`🛒 Trade missions per turn increased to ${player.tradePosts}.`);
+      }
+      if (selected.harvestBonus) {
+        player.harvestLimit = (player.harvestLimit || 0) + selected.harvestBonus;
+        player.harvestsLeft = Math.min(player.harvestLimit, (player.harvestsLeft || 0) + selected.harvestBonus);
+        logEvent(`🌾 Harvest opportunities increased to ${player.harvestLimit} per turn.`);
+      }
+      if (selected.energyBonus) {
+        player.energyBonus = (player.energyBonus || 0) + selected.energyBonus;
+        logEvent("⚡ Spiritual engines hum louder. Energy recovery improves.");
+      }
+      if (selected.recruitBonus) {
+        player.recruitBonus = (player.recruitBonus || 0) + selected.recruitBonus;
+      }
+      if (selected.battleBonus) {
+        player.battleBonus = (player.battleBonus || 0) + selected.battleBonus;
+      }
+      if (selected.extraGoods?.length) {
+        registerHarvestGoods(selected.extraGoods);
+        if (!player.extraHarvestGoods) player.extraHarvestGoods = [];
+        player.extraHarvestGoods.push(...selected.extraGoods);
+        logEvent("🧺 New specialty goods can now be harvested.");
+      }
+      if (selected.unlocksAbilityTag) {
+        if (!player.unlockedAbilityTags) player.unlockedAbilityTags = new Set();
+        player.unlockedAbilityTags.add(selected.unlocksAbilityTag);
+      }
+      if (selected.relicShield) {
+        player.relicShield = (player.relicShield || 0) + 1;
       }
       renderHUD();
     }
@@ -1072,7 +1437,7 @@ function logEvent(msg) {
   log.scrollTop = log.scrollHeight;
 }
 function endTurn() {
-  const restored = calcStartingEnergy(player);
+  const restored = calcStartingEnergy(player) + (player.energyBonus || 0);
   player.energy += restored;
   logEvent(`🌙 Turn ended. Recovered ${restored} energy (total ${player.energy}).`);
   if (player.tradePostIncome) {
@@ -1089,9 +1454,10 @@ function endTurn() {
   } else {
     player.abilitiesUsedThisTurn = new Map();
   }
-  player.harvestsLeft = player.harvestLimit || 5;
-  player.tradesRemaining = player.tradePosts;
+  player.harvestsLeft = player.harvestLimit || 0;
+  player.tradesRemaining = player.tradePosts || 0;
   player.imports = Math.floor(Math.random() * 5) + 1;
+  processAIFactionTurns();
   renderHUD();
 }
 
@@ -1117,12 +1483,19 @@ let player = {
   economyBonus: 0,
   relicsUsedThisTurn: new Set(),
   abilitiesUsedThisTurn: new Map(),
-  harvestsLeft: 5,
-  harvestLimit: 5,
+  harvestsLeft: 0,
+  harvestLimit: 0,
   harvestedGoods: {},
   harvestedGoodsValue: 0,
   tradePosts: 0,
   tradesRemaining: 0,
+  extraHarvestGoods: [],
+  recruitBonus: 0,
+  energyBonus: 0,
+  battleBonus: 0,
+  relicShield: 0,
+  pendingPeaceOffers: [],
+  unlockedAbilityTags: new Set(),
 };
 document.addEventListener("DOMContentLoaded", () => {
   diplomacyModal = document.getElementById("diplomacyModal");
@@ -1164,5 +1537,9 @@ function startGame(faction) {
     handleAction,
     renderFactionAbilities,
   });
+  markRelicClaimed(faction.startingRelic);
   factionRelics.set(faction.name, null);
+  player.pendingPeaceOffers = [];
+  player.extraHarvestGoods = [];
+  initializeAIStates(faction);
 }

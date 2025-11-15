@@ -176,6 +176,7 @@ function showRelicMenu() {
       const energyCost = relic.energyCost ?? 1;
       const used = player.relicsUsedThisTurn instanceof Set && player.relicsUsedThisTurn.has(name);
       const canAfford = player.energy >= energyCost;
+      const statusText = used ? "Resting" : canAfford ? "Ready to awaken" : "Need more energy";
       const card = document.createElement("button");
       card.className = "relic-card";
       if (used) card.classList.add("spent");
@@ -188,6 +189,7 @@ function showRelicMenu() {
           <span>${relic.type || "Relic"}</span>
           <span>⚡ ${energyCost}</span>
         </div>
+        <div class="card-status">${statusText}</div>
       `;
       if (!card.disabled) {
         card.addEventListener("click", () => {
@@ -888,7 +890,7 @@ function buildMenu() {
           <span>⚡ ${b.cost.energy}</span>
           <span>🏛️ ${builtCount}</span>
         </div>
-        <div class="build-status">
+        <div class="card-status">
           ${!prereqMet ? `Requires ${b.preRec}` : hasResources ? "Ready to build" : "Need more resources"}
         </div>
       `;

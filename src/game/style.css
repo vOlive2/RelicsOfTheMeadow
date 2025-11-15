@@ -380,14 +380,16 @@ footer button:hover {
   margin: 0.4em 0;
 }
 
-.build-status {
+.card-status {
   font-size: 0.75em;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--moss-green);
 }
 
-.build-card.locked .build-status {
+.build-card.locked .card-status,
+.relic-card.locked .card-status,
+.relic-card.spent .card-status {
   color: #777;
 }
 

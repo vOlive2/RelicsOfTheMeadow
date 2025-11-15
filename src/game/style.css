@@ -2,20 +2,32 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
 
+:root {
+  --earth-brown: #8c6b47;
+  --meadow-cream: #ffedd7;
+  --moss-green: #5e8c61;
+  --sage-green: #89c97f;
+  --ink: #2f1e12;
+  --sky: #f4f0e5;
+  --rose: #c97f7f;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: 'Cinzel', serif;
-  background-color: #c0a282;
-  color: #000;
+  background: linear-gradient(135deg, #c0a282, #b8936e);
+  color: var(--ink);
   min-height: 100vh;
   width: 100%;
   max-height: 100%;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  animation: fadeBackground 6s ease-in-out infinite alternate;
+  animation: fadeBackground 10s ease-in-out infinite alternate;
 }
 
 /* 🌞 HEADER */

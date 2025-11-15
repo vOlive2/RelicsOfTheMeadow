@@ -94,21 +94,26 @@ function renderHUD() {
     { label: "🛡️ Protection", value: player.protection },
     { label: "🪖 Troops", value: player.troops },
     { label: "💰 Gold", value: player.gold },
+    { label: "⚡ Energy", value: player.energy, extraClass: "stat-energy" },
   ];
   const rightStats = [
-    { label: "⚡ Energy", value: player.energy },
     { label: "⚔️ Prowess Rank", value: player.prowess, pillar: true },
-    { label: "🧱 Resilience Tier", value: player.resilience, pillar: true },
-    { label: "📊 Economy Surge", value: player.economy, pillar: true },
+    { label: "🧱 Resilience Rank", value: player.resilience, pillar: true },
+    { label: "📊 Economy Rank", value: player.economy, pillar: true },
   ];
   const renderColumn = stats =>
     stats
       .map(
-        stat => `
-        <div class="stat-item${stat.pillar ? " pillar-stat" : ""}">
+        stat => {
+          const classes = ["stat-item"];
+          if (stat.pillar) classes.push("pillar-stat");
+          if (stat.extraClass) classes.push(stat.extraClass);
+          return `
+        <div class="${classes.join(" ")}">
           <strong>${stat.label}</strong>
           <span>${stat.value}</span>
-        </div>`
+        </div>`;
+        }
       )
       .join("");
   document.getElementById("factionList").innerHTML = `

@@ -880,77 +880,80 @@ function getTotalHarvestedGoods() {
   return Object.values(player.harvestedGoods || {}).reduce((sum, count) => sum + count, 0);
 }
 
+function formatActionCost(btn) {
+  const custom = btn?.dataset?.costCustom;
+  if (custom) return custom;
+  const energy = Number(btn?.dataset?.costEnergy || 0);
+  const gold = Number(btn?.dataset?.costGold || 0);
+  const parts = [];
+  if (energy) parts.push(`⚡${energy}`);
+  if (gold) parts.push(`💰${gold}`);
+  return parts.length ? parts.join(" • ") : "Free";
+}
+
 function updateActionIndicators() {
-  const buttons = document.querySelectorAll("#actionButtons button");
-  buttons.forEach(btn => {
+  document.querySelectorAll("#actionButtons button").forEach(btn => {
     const actionId = btn.dataset.action;
     const labelEl = btn.querySelector("span");
     const detailEl = btn.querySelector("small");
-    if (detailEl && !detailEl.dataset.defaultText) {
-      detailEl.dataset.defaultText = detailEl.textContent || "";
+    if (!detailEl) return;
+    if (labelEl?.dataset?.defaultText && !labelEl.textContent) {
+      labelEl.textContent = labelEl.dataset.defaultText;
     }
-    const resetLabel = () => {
-      if (labelEl?.dataset.defaultText) {
-        labelEl.textContent = labelEl.dataset.defaultText;
-      }
-    };
+    const costText = `Cost: ${formatActionCost(btn)}`;
+    const baseDetail = detailEl.dataset.defaultText || "";
+    let detailText = baseDetail ? `${costText} • ${baseDetail}` : costText;
+    btn.disabled = false;
+
     switch (actionId) {
       case "harvest":
         if (labelEl) {
           labelEl.textContent = `🌾 Harvest (${player.harvestsLeft}/${player.harvestLimit || 5})`;
         }
-        if (detailEl) {
-          detailEl.textContent = "Gather crops and supplies.";
+        detailText += ` • Goods stored: ${getTotalHarvestedGoods()}`;
+        if (player.harvestsLeft <= 0 || player.energy < HARVEST_ENERGY_COST) {
+          btn.disabled = true;
         }
         break;
-      case "trade": {
-        const totalCrates = getTotalHarvestedGoods();
+      case "battle":
+        detailText += ` • Troops ready: ${player.troops}`;
+        break;
+      case "commerce":
         if (labelEl) {
-          const totalPosts = player.tradePosts || 0;
-          labelEl.textContent = `📦 Trade (${player.tradesRemaining}/${totalPosts})`;
+          labelEl.textContent = `🏛️ Commerce (${player.tradesRemaining}/${player.tradePosts || 0})`;
         }
-        if (detailEl) {
-          detailEl.textContent = player.tradePosts
-            ? `${totalCrates} crate(s) ready for export`
-            : "Build a Trading Post to unlock trade.";
-        }
-        break;
-      }
-      case "collect":
-        resetLabel();
-        if (detailEl) {
-          detailEl.textContent = player.imports
-            ? `Imports waiting: ${player.imports}`
-            : "No imports waiting.";
-        }
+        detailText += ` • Imports waiting: ${player.imports}`;
         break;
       case "delve":
-        resetLabel();
-        if (detailEl) {
-          detailEl.textContent = `Cost: ⚡${RELIC_DELVE_COST.energy} • 💰${RELIC_DELVE_COST.gold}`;
+        if (labelEl) {
+          labelEl.textContent = `🕳️ Delve (${availableDelveRelics.size} unclaimed)`;
+        }
+        if (!hasAvailableDelveRelics()) {
+          btn.disabled = true;
+          detailText += " • Vaults exhausted";
         }
         break;
+      case "recruit":
+        detailText += ` • Gain ${Math.max(1, player.prowess)} troops`;
+        break;
       case "use-relic": {
-        resetLabel();
-        if (detailEl) {
-          const ownedRelics = (player.relics || []).filter(name => name && name !== "None").length;
-          detailEl.textContent = `Relics owned: ${ownedRelics}`;
-        }
+        const ownedRelics = (player.relics || []).filter(name => name && name !== "None").length;
+        detailText += ` • Relics owned: ${ownedRelics}`;
         break;
       }
       case "inventory":
-        resetLabel();
-        if (detailEl) {
-          detailEl.textContent = "Review goods & logistics.";
-        }
+        detailText += ` • Imports: ${player.imports}`;
+        break;
+      case "end-turn":
+        detailText = "Recover energy, refresh harvests and trade missions.";
         break;
       default:
-        resetLabel();
-        if (detailEl?.dataset.defaultText) {
-          detailEl.textContent = detailEl.dataset.defaultText;
+        if (labelEl?.dataset?.defaultText) {
+          labelEl.textContent = labelEl.dataset.defaultText;
         }
         break;
     }
+    detailEl.textContent = detailText;
   });
 }
 

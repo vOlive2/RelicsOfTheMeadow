@@ -72,8 +72,8 @@ const buildings = [
     harvestBonus: 4,
     energyBonus: 1,
     extraGoods: [
-      { key: "orchard_ambrosia", name: "Ambrosia Fruit", emoji: "🍎", value: 32 },
-      { key: "orchard_spice", name: "Amber Spice", emoji: "🧂", value: 30 }
+      { key: "orchard_ambrosia", name: "Ambrosia Fruit", emoji: "🍎", value: 32, weight: 2 },
+      { key: "orchard_spice", name: "Amber Spice", emoji: "🧂", value: 30, weight: 2 }
     ],
     availableTo: "all"
   },
@@ -86,8 +86,8 @@ const buildings = [
     harvestBonus: 5,
     energyBonus: 1,
     extraGoods: [
-      { key: "celestial_blossom", name: "Celestial Blossom", emoji: "🌸", value: 40 },
-      { key: "nectar_of_legends", name: "Nectar of Legends", emoji: "🏺", value: 46 }
+      { key: "celestial_blossom", name: "Celestial Blossom", emoji: "🌸", value: 40, weight: 3 },
+      { key: "nectar_of_legends", name: "Nectar of Legends", emoji: "🏺", value: 46, weight: 3 }
     ],
     availableTo: "all"
   },

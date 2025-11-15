@@ -60,6 +60,9 @@ export function setupActionButtons(handleAction) {
   actions.forEach(a => {
     const btn = document.createElement("button");
     btn.classList.add("action-ability-button");
+    if (a.id === "end-turn") {
+      btn.classList.add("end-turn");
+    }
     const label = document.createElement("span");
     label.textContent = a.label;
     label.dataset.defaultText = a.label;

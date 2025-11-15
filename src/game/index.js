@@ -34,7 +34,15 @@ const factionHarvestGoods = {
 };
 const harvestGoodsMap = new Map();
 function registerHarvestGoods(list) {
-  list.forEach(good => harvestGoodsMap.set(good.key, good));
+  list.forEach(good => {
+    const existing = harvestGoodsMap.get(good.key) || {};
+    const merged = {
+      ...existing,
+      ...good,
+      weight: good.weight ?? existing.weight ?? 1,
+    };
+    harvestGoodsMap.set(good.key, merged);
+  });
 }
 registerHarvestGoods(harvestableGoods);
 Object.values(factionHarvestGoods).forEach(list => registerHarvestGoods(list));
@@ -48,11 +56,20 @@ const PEACE_COST_ENERGY = 2;
 const aiStates = new Map();
 
 function getActiveHarvestGoods() {
-  const goods = [...harvestableGoods];
+  const active = new Map();
+  const addByKey = key => {
+    const good = harvestGoodsMap.get(key);
+    if (good) active.set(key, good);
+  };
+  harvestableGoods.forEach(g => addByKey(g.key));
   const factionExtras = player?.faction ? factionHarvestGoods[player.faction.name] : null;
-  if (factionExtras) goods.push(...factionExtras);
-  if (player?.extraHarvestGoods?.length) goods.push(...player.extraHarvestGoods);
-  return goods;
+  if (factionExtras) {
+    factionExtras.forEach(g => addByKey(g.key));
+  }
+  if (player?.extraHarvestGoods?.length) {
+    player.extraHarvestGoods.forEach(g => addByKey(g.key));
+  }
+  return [...active.values()];
 }
 
 function getHarvestCatalog() {
@@ -184,22 +201,43 @@ function executeFactionAbility(ability) {
   }
   const energyCost = ability?.cost?.energy ?? 0;
   const goldCost = ability?.cost?.gold ?? 0;
-  spendEnergyAndGold(energyCost, goldCost, null, () => {
-    if (typeof ability.logic === "function") {
-      ability.logic({
-        player,
-        logEvent,
-        updateDerivedStats,
-        acquireRelic: acquireRandomRelic,
-        acquireRelicFromFaction,
-      });
-    } else {
-      logEvent(`${ability.name} crackles, but no power responds.`);
-    }
-    player.abilitiesUsedThisTurn.set(abilityKey, usesSoFar + 1);
-    updateDerivedStats();
-    renderHUD();
-  });
+
+  const triggerAbility = selectedFaction => {
+    spendEnergyAndGold(energyCost, goldCost, null, () => {
+      if (typeof ability.logic === "function") {
+        ability.logic({
+          player,
+          logEvent,
+          updateDerivedStats,
+          acquireRelic: acquireRandomRelic,
+          acquireRelicFromFaction,
+          targetFaction: selectedFaction,
+        });
+      } else {
+        logEvent(`${ability.name} crackles, but no power responds.`);
+      }
+      player.abilitiesUsedThisTurn.set(abilityKey, usesSoFar + 1);
+      updateDerivedStats();
+      renderHUD();
+    });
+  };
+
+  if (abilityNeedsFactionTarget(ability)) {
+    const candidates = factions.filter(f => f.name !== player.faction.name);
+    showFactionSelectionModal({
+      title: `Select a faction to ${ability.name.toLowerCase()}`,
+      candidates,
+      emptyMessage: "No factions available for that ability.",
+      onSelect: target => triggerAbility(target),
+    });
+    return;
+  }
+
+  triggerAbility();
+}
+
+function abilityNeedsFactionTarget(ability) {
+  return player.faction?.name === "The Crimson Horde" && ability.name === "Raid";
 }
 
 function showRelicMenu() {
@@ -510,6 +548,7 @@ function createAIState(faction) {
     aggression: aiAggressionTendencies[faction.name] ?? 0.3,
     diplomacy: aiDiplomacyTendencies[faction.name] ?? 0.3,
     rivals: [],
+    energy: 6,
   };
 }
 
@@ -536,30 +575,56 @@ function processAIFactionTurns() {
 
 function executeAIFactionTurn(state) {
   const factionName = state.faction.name;
-  logEvent("------------");
-  logEvent(`🤖 It is now ${state.faction.emoji} ${factionName}'s turn.`);
+  logEvent(`⋘ ${state.faction.emoji} ${factionName} Turn ⋙`);
   resolvePendingPeaceFor(state);
+  state.energy = Math.min(12, (state.energy || 0) + 4);
   if (state.faction.name === "The Meadowfolk Union") {
     aiMeadowfolkTurn(state);
     return;
   }
-  if (player.declaredWars.includes(factionName)) {
+  const maxActions = 3;
+  let actions = 0;
+  while (actions < maxActions && state.energy > 0) {
+    const acted = performAIAction(state);
+    if (!acted) break;
+    actions += 1;
+  }
+}
+
+function performAIAction(state) {
+  if (player.declaredWars.includes(state.faction.name)) {
     aiWarSkirmish(state);
-    return;
+    state.energy = Math.max(0, (state.energy || 0) - 2);
+    return true;
   }
-  if (!player.alliances.includes(factionName) && Math.random() < state.diplomacy * 0.4) {
+  if (
+    state.energy >= 1 &&
+    !player.alliances.includes(state.faction.name) &&
+    Math.random() < state.diplomacy * 0.4
+  ) {
     aiRequestAlliance(state);
-    return;
+    state.energy = Math.max(0, (state.energy || 0) - 1);
+    return true;
   }
-  if (Math.random() < state.aggression * 0.5) {
+  if (state.energy >= 2 && Math.random() < state.aggression * 0.4) {
     aiDeclareWarOnPlayer(state);
-    return;
+    state.energy = Math.max(0, (state.energy || 0) - 2);
+    return true;
   }
-  if ((state.faction.abilities || []).length && Math.random() < 0.6) {
+  const abilities = state.faction.abilities || [];
+  if (abilities.length && state.energy >= 2 && Math.random() < 0.55) {
     aiUseAbility(state);
-  } else {
-    aiGatherResources(state);
+    state.energy = Math.max(0, (state.energy || 0) - 2);
+    return true;
   }
+  if (state.rivals?.length && state.energy >= 2 && Math.random() < 0.4) {
+    aiAttackRival(state);
+    state.energy = Math.max(0, (state.energy || 0) - 2);
+    return true;
+  }
+  aiGatherResources(state);
+  state.energy = Math.max(0, (state.energy || 0) - 1);
+  return true;
 }
 
 function resolvePendingPeaceFor(state) {
@@ -684,6 +749,7 @@ function aiMeadowfolkTurn(state) {
   player.happiness += 1;
   player.resilience += 1;
   logEvent("🌾 Meadowfolk gifts bolster your morale and resilience.");
+  state.energy = Math.max(0, (state.energy || 0) - 1);
 }
 
 function aiUseAbility(state) {
@@ -710,9 +776,6 @@ function aiGatherResources(state) {
   state.gold = (state.gold || 0) + haul;
   state.troops = (state.troops || 0) + 2;
   logEvent(`${state.faction.emoji} ${state.faction.name} consolidates, earning ${haul} gold.`);
-  if (Math.random() < 0.35) {
-    aiAttackRival(state);
-  }
 }
 
 function aiAttackRival(state) {
@@ -777,9 +840,10 @@ function showBattleModal() {
     const grid = document.createElement("div");
     grid.className = "build-grid battle-grid";
     availableTargets.forEach(target => {
-      const relation = player.declaredWars.includes(target.name) ? "At War" : "Neutral";
+      const isWar = player.declaredWars.includes(target.name);
+      const relation = isWar ? "At War" : "Neutral";
       const card = document.createElement("button");
-      card.className = "build-card battle-card";
+      card.className = `build-card battle-card ${isWar ? "status-war" : ""}`;
       card.disabled = player.energy < 3;
       card.innerHTML = `
         <strong>${target.emoji} ${target.name}</strong>
@@ -818,6 +882,32 @@ function executeBattle(targetFaction) {
       }
     }
   );
+}
+
+function showFactionSelectionModal({ title, candidates, emptyMessage, onSelect }) {
+  if (!candidates?.length) {
+    logEvent(emptyMessage || "No factions available for that action.");
+    return;
+  }
+  openActionModal(title, body => {
+    const grid = document.createElement("div");
+    grid.className = "build-grid faction-grid";
+    candidates.forEach(f => {
+      const card = document.createElement("button");
+      const isWar = player.declaredWars.includes(f.name);
+      card.className = `build-card ${isWar ? "status-war" : ""}`;
+      card.innerHTML = `
+        <strong>${f.emoji} ${f.name}</strong>
+        <p class="battle-summary">${f.overview || ""}</p>
+      `;
+      card.addEventListener("click", () => {
+        closeActionModal();
+        onSelect?.(f);
+      });
+      grid.appendChild(card);
+    });
+    body.appendChild(grid);
+  });
 }
 
 const peacePersonalities = {
@@ -1087,7 +1177,16 @@ function harvestCrops() {
     return;
   }
   spendEnergyAndGold(HARVEST_ENERGY_COST, 0, null, () => {
-    const bounty = goodsPool[Math.floor(Math.random() * goodsPool.length)];
+    const totalWeight = goodsPool.reduce((sum, good) => sum + (good.weight || 1), 0);
+    let roll = Math.random() * totalWeight;
+    let bounty = goodsPool[0];
+    for (const good of goodsPool) {
+      roll -= good.weight || 1;
+      if (roll <= 0) {
+        bounty = good;
+        break;
+      }
+    }
     player.harvestedGoods[bounty.key] = (player.harvestedGoods[bounty.key] || 0) + 1;
     player.harvestsLeft = Math.max(0, player.harvestsLeft - 1);
     recalcHarvestedGoodsValue();
@@ -1310,7 +1409,6 @@ function renderCommerceContent(container) {
     note.textContent = "Build Trading Posts to unlock caravans.";
     exportsSection.appendChild(note);
   }
-  container.appendChild(exportsSection);
 
   const importSection = document.createElement("section");
   importSection.className = "commerce-section";
@@ -1323,7 +1421,22 @@ function renderCommerceContent(container) {
   importBtn.disabled = player.imports <= 0;
   importBtn.addEventListener("click", () => collectImportCrate(() => renderCommerceContent(container)));
   importSection.appendChild(importBtn);
-  container.appendChild(importSection);
+  const importHelp = document.createElement("p");
+  importHelp.className = "commerce-note";
+  importHelp.textContent = "Imports can include troops, happiness, protection, and gold.";
+  importSection.appendChild(importHelp);
+
+  const splitWrapper = document.createElement("div");
+  splitWrapper.className = "commerce-split";
+  const leftColumn = document.createElement("div");
+  leftColumn.className = "commerce-column";
+  const rightColumn = document.createElement("div");
+  rightColumn.className = "commerce-column";
+  leftColumn.appendChild(exportsSection);
+  rightColumn.appendChild(importSection);
+  splitWrapper.appendChild(leftColumn);
+  splitWrapper.appendChild(rightColumn);
+  container.appendChild(splitWrapper);
 }
 
 function recalcHarvestedGoodsValue() {

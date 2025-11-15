@@ -183,6 +183,14 @@ button:disabled {
   margin-top: 0.1em;
 }
 
+.action-ability-button.end-turn {
+  background: linear-gradient(135deg, #d9806f, #b45242);
+}
+
+.action-ability-button.end-turn:hover {
+  background: linear-gradient(135deg, #ed997d, #ca5c48);
+}
+
 .ability-box {
   background: linear-gradient(160deg, rgba(244, 240, 229, 0.95), rgba(231, 221, 199, 0.92));
   border: 3px solid var(--earth-brown);
@@ -332,11 +340,21 @@ button:disabled {
   margin: 0.4em 0;
 }
 
+.battle-summary {
+  font-size: 0.8em;
+  min-height: 45px;
+}
+
 .battle-meta {
   display: flex;
   justify-content: space-between;
   font-size: 0.8em;
   gap: 0.3em;
+}
+
+.battle-card.status-war {
+  border-color: #b44747;
+  box-shadow: 0 0 0 2px rgba(180, 71, 71, 0.35);
 }
 
 .build-card,
@@ -455,6 +473,18 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.8em;
+}
+
+.commerce-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  width: 100%;
+}
+
+.commerce-column {
+  flex: 1;
+  min-width: 260px;
 }
 
 .commerce-good {

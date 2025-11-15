@@ -266,6 +266,13 @@ function acquireRelicFromFaction(faction, reason = "battle") {
 
 function acquireRandomRelic(options = {}) {
   const { reason = "delve", preferredFactions } = options;
+  if (reason === "delve") {
+    const pool = [...availableDelveRelics];
+    if (!pool.length) return null;
+    const relicName = pool[Math.floor(Math.random() * pool.length)];
+    grantRelicToPlayer(relicName, `${reason}`);
+    return relicName;
+  }
   let pool = [...factionRelics.entries()].filter(([, relic]) => Boolean(relic));
   if (preferredFactions?.length) {
     const preferred = pool.filter(([owner]) => preferredFactions.includes(owner));
@@ -276,6 +283,10 @@ function acquireRandomRelic(options = {}) {
   factionRelics.set(ownerName, null);
   grantRelicToPlayer(relicName, `${ownerName} (${reason})`);
   return relicName;
+}
+
+function hasAvailableDelveRelics() {
+  return availableDelveRelics.size > 0;
 }
 
 function attemptRelicCapture(targetFaction) {

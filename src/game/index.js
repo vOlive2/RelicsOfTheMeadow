@@ -239,12 +239,18 @@ function activateRelicPower(relicName) {
   }
 }
 
+function markRelicClaimed(relicName) {
+  if (!relicName || relicName === "None") return;
+  availableDelveRelics.delete(relicName);
+}
+
 function grantRelicToPlayer(relicName, sourceFactionName) {
   if (!relicName) return false;
   if (!player.relics) player.relics = [];
   if (!player.relics.includes(relicName)) {
     player.relics.push(relicName);
   }
+  markRelicClaimed(relicName);
   logEvent(`🔮 Acquired ${relicName} from ${sourceFactionName || "mysterious origins"}!`);
   return true;
 }

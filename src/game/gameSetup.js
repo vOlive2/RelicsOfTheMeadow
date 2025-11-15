@@ -29,11 +29,8 @@ export function startPlayerGame({
   player.tradesRemaining = 0;
   updateDerivedStats();
   player.energy = calcStartingEnergy(player);
-  renderHUD();
   setupActionButtons(handleAction);
-  if (typeof renderFactionAbilities === "function") {
-    renderFactionAbilities();
-  }
+  renderHUD();
   logEvent(`🌿 Welcome, ${faction.name}!`);
 }
 
@@ -57,8 +54,10 @@ export function setupActionButtons(handleAction) {
     btn.classList.add("action-ability-button");
     const label = document.createElement("span");
     label.textContent = a.label;
+    label.dataset.defaultText = a.label;
     const detail = document.createElement("small");
     detail.textContent = a.detail ?? "";
+    detail.dataset.defaultText = a.detail ?? "";
     btn.appendChild(label);
     btn.appendChild(detail);
     btn.dataset.action = a.id;
@@ -78,7 +77,6 @@ function applyStartingStats(player, faction) {
   player.happiness = 1;
   player.protection = 1;
   player.imports = Math.floor(Math.random() * 5) + 1;
-  player.canTrade = true;
   player.relics = [];
   player.tradePostIncome = 0;
   player.economyBonus = 0;

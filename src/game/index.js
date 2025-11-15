@@ -81,6 +81,7 @@ function renderHUD() {
     </div>
   `;
   renderFactionAbilities();
+  updateActionIndicators();
 }
 
 /////////////////////////////////////
@@ -669,7 +670,7 @@ function showInventoryPanel() {
   const details = `📦 Inventory — Imports waiting: ${player.imports}. Harvests left: ${
     player.harvestsLeft
   }/${player.harvestLimit || 5}. Trades left: ${player.tradesRemaining}/${player.tradePosts}.
-Goods on hand: ${goodsSummary || "None"}.`;
+Goods on hand: ${goodsSummary}.`;
   logEvent(details);
 }
 
@@ -680,6 +681,84 @@ function recalcHarvestedGoodsValue() {
     return sum + good.value * count;
   }, 0);
   player.harvestedGoodsValue = total;
+}
+
+function getTotalHarvestedGoods() {
+  return Object.values(player.harvestedGoods || {}).reduce((sum, count) => sum + count, 0);
+}
+
+function updateActionIndicators() {
+  const buttons = document.querySelectorAll("#actionButtons button");
+  buttons.forEach(btn => {
+    const actionId = btn.dataset.action;
+    const labelEl = btn.querySelector("span");
+    const detailEl = btn.querySelector("small");
+    if (detailEl && !detailEl.dataset.defaultText) {
+      detailEl.dataset.defaultText = detailEl.textContent || "";
+    }
+    const resetLabel = () => {
+      if (labelEl?.dataset.defaultText) {
+        labelEl.textContent = labelEl.dataset.defaultText;
+      }
+    };
+    switch (actionId) {
+      case "harvest":
+        if (labelEl) {
+          labelEl.textContent = `🌾 Harvest (${player.harvestsLeft}/${player.harvestLimit || 5})`;
+        }
+        if (detailEl) {
+          detailEl.textContent = "Gather crops and supplies.";
+        }
+        break;
+      case "trade": {
+        const totalCrates = getTotalHarvestedGoods();
+        if (labelEl) {
+          const totalPosts = player.tradePosts || 0;
+          labelEl.textContent = `📦 Trade (${player.tradesRemaining}/${totalPosts})`;
+        }
+        if (detailEl) {
+          detailEl.textContent = player.tradePosts
+            ? `${totalCrates} crate(s) ready for export`
+            : "Build a Trading Post to unlock trade.";
+        }
+        break;
+      }
+      case "collect":
+        resetLabel();
+        if (detailEl) {
+          detailEl.textContent = player.imports
+            ? `Imports waiting: ${player.imports}`
+            : "No imports waiting.";
+        }
+        break;
+      case "delve":
+        resetLabel();
+        if (detailEl) {
+          detailEl.textContent = `Cost: ⚡${RELIC_DELVE_COST.energy} • 💰${RELIC_DELVE_COST.gold}`;
+        }
+        break;
+      case "use-relic": {
+        resetLabel();
+        if (detailEl) {
+          const ownedRelics = (player.relics || []).filter(name => name && name !== "None").length;
+          detailEl.textContent = `Relics owned: ${ownedRelics}`;
+        }
+        break;
+      }
+      case "inventory":
+        resetLabel();
+        if (detailEl) {
+          detailEl.textContent = "Review goods & logistics.";
+        }
+        break;
+      default:
+        resetLabel();
+        if (detailEl?.dataset.defaultText) {
+          detailEl.textContent = detailEl.dataset.defaultText;
+        }
+        break;
+    }
+  });
 }
 
 function buildMenu() {
@@ -726,6 +805,14 @@ function buildMenu() {
       if (selected.economyBonus) {
         player.economyBonus = (player.economyBonus || 0) + selected.economyBonus;
         logEvent("💹 Your economy strengthens thanks to the new trade hub.");
+      }
+      if (selected.tradeBoost) {
+        player.tradePosts = (player.tradePosts || 0) + 1;
+        player.tradesRemaining = Math.min(
+          player.tradePosts,
+          (player.tradesRemaining || 0) + 1
+        );
+        logEvent(`🛒 Trade missions per turn increased to ${player.tradePosts}.`);
       }
     }
   );
@@ -775,7 +862,8 @@ function endTurn() {
   } else {
     player.abilitiesUsedThisTurn = new Map();
   }
-  player.canTrade = true;
+  player.harvestsLeft = player.harvestLimit || 5;
+  player.tradesRemaining = player.tradePosts;
   player.imports = Math.floor(Math.random() * 5) + 1;
   renderHUD();
 }
@@ -794,7 +882,6 @@ let player = {
   resilience: 0,
   economy: 1,
   imports: 0,
-  canTrade: true,
   relics: [],
   buildings: [],
   declaredWars: [],

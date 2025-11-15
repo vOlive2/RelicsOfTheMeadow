@@ -16,6 +16,16 @@ factions.forEach(f => {
   factionRelics.set(f.name, f.startingRelic || null);
 });
 
+const harvestableGoods = [
+  { key: "wheat", name: "Amber Wheat", emoji: "🌾", value: 18 },
+  { key: "herbs", name: "Grove Herbs", emoji: "🌿", value: 20 },
+  { key: "timber", name: "Lumber Bundles", emoji: "🪵", value: 24 },
+  { key: "supplies", name: "Packed Supplies", emoji: "🎒", value: 22 },
+];
+const harvestGoodsMap = new Map(harvestableGoods.map(g => [g.key, g]));
+const HARVEST_ENERGY_COST = 1;
+const RELIC_DELVE_COST = { energy: 5, gold: 250 };
+
 
 /////////////////////////////////////
 ///      DERIVED STATS & HUD      ///
@@ -116,10 +126,20 @@ function renderFactionAbilities() {
 }
 
 function executeFactionAbility(ability) {
+  if (!ability) return;
+  if (!(player.abilitiesUsedThisTurn instanceof Map)) {
+    player.abilitiesUsedThisTurn = new Map();
+  }
+  const abilityKey = ability.id || ability.name;
+  const usesSoFar = player.abilitiesUsedThisTurn.get(abilityKey) || 0;
+  const maxUses = ability.usesPerTurn ?? 1;
+  if (usesSoFar >= maxUses) {
+    logEvent(`♻️ ${ability.name} cannot be invoked again this turn.`);
+    return;
+  }
   const energyCost = ability?.cost?.energy ?? 0;
   const goldCost = ability?.cost?.gold ?? 0;
-  const message = ability?.activationMessage || `${ability.name} activated!`;
-  spendEnergyAndGold(energyCost, goldCost, message, () => {
+  spendEnergyAndGold(energyCost, goldCost, null, () => {
     if (typeof ability.logic === "function") {
       ability.logic({
         player,
@@ -131,6 +151,7 @@ function executeFactionAbility(ability) {
     } else {
       logEvent(`${ability.name} crackles, but no power responds.`);
     }
+    player.abilitiesUsedThisTurn.set(abilityKey, usesSoFar + 1);
     updateDerivedStats();
     renderHUD();
   });
@@ -461,6 +482,10 @@ function handleAction(action) {
       showDiplomacyMenu();
       break;
     case "battle": {
+      if (player.troops <= 0) {
+        logEvent("🪖 Your armies are too depleted to battle.");
+        break;
+      }
       const availableTargets = factions.filter(
         f => f.name !== player.faction.name && !player.alliances.includes(f.name)
       );
@@ -471,12 +496,14 @@ function handleAction(action) {
       const targetFaction = chooseOpponent("battle", f => !player.alliances.includes(f.name));
       if (!targetFaction) break;
       const atWar = player.declaredWars.includes(targetFaction.name);
+      const projectedLoss = Math.max(3, Math.floor(player.troops * 0.15));
+      const troopLoss = Math.min(player.troops, projectedLoss);
       spendEnergyAndGold(
-        2,
+        3,
         0,
-        `Fought ${targetFaction.name}! Gained troops and protection, lost happiness`,
+        `⚔️ Clashed with ${targetFaction.name}. Lost ${troopLoss} troops but gained grit.`,
         () => {
-          player.troops += 10;
+          player.troops = Math.max(0, player.troops - troopLoss);
           player.protection = Math.max(0, player.protection + 1);
           player.happiness = Math.max(0, player.happiness - 1);
           const captured = attemptRelicCapture(targetFaction);
@@ -490,14 +517,11 @@ function handleAction(action) {
     case "build":
       buildMenu();
       break;
+    case "harvest":
+      harvestCrops();
+      break;
     case "trade":
-      if (player.canTrade) {
-        player.canTrade = false;
-        const num = Math.floor(Math.random() * 15) + 1;
-        spendEnergyAndGold(1, 0, `Trade complete! Gained ${num} gold`, () => (player.gold += num));
-      } else {
-        logEvent("You have already traded this turn!");
-      }
+      performTrade();
       break;
     case "collect":
       if (player.imports > 0) {
@@ -531,8 +555,14 @@ function handleAction(action) {
         logEvent("No imports to collect!");
       }
       break;
+    case "delve":
+      attemptRelicDelve();
+      break;
     case "use-relic":
       showRelicMenu();
+      break;
+    case "inventory":
+      showInventoryPanel();
       break;
     case "end-turn":
       endTurn();
@@ -543,6 +573,115 @@ function handleAction(action) {
 /////////////////////////////////////
 ///     ECONOMY & LOG HELPERS     ///
 /////////////////////////////////////
+function harvestCrops() {
+  const limit = player.harvestLimit || 5;
+  if (player.harvestsLeft <= 0) {
+    logEvent("🌱 The fields need rest. Wait until next turn to harvest again.");
+    return;
+  }
+  spendEnergyAndGold(HARVEST_ENERGY_COST, 0, null, () => {
+    const bounty = harvestableGoods[Math.floor(Math.random() * harvestableGoods.length)];
+    player.harvestedGoods[bounty.key] = (player.harvestedGoods[bounty.key] || 0) + 1;
+    player.harvestsLeft = Math.max(0, player.harvestsLeft - 1);
+    recalcHarvestedGoodsValue();
+    logEvent(
+      `${bounty.emoji} Harvested ${bounty.name}. (${player.harvestsLeft}/${limit} harvests left)`
+    );
+  });
+}
+
+function performTrade() {
+  if (player.tradePosts <= 0) {
+    logEvent("🏚️ You need a Trading Post before you can export goods.");
+    return;
+  }
+  if (player.tradesRemaining <= 0) {
+    logEvent("🚫 All trade missions have been used this turn.");
+    return;
+  }
+  const goodsEntries = Object.entries(player.harvestedGoods || {}).filter(([, count]) => count > 0);
+  if (!goodsEntries.length) {
+    logEvent("🌾 No harvested goods ready for export.");
+    return;
+  }
+  const choice = prompt(
+    `Choose goods to export:\n${goodsEntries
+      .map(([key, count], idx) => {
+        const good = harvestGoodsMap.get(key);
+        return `${idx + 1}. ${good?.emoji || "📦"} ${good?.name || key} — ${count} crate(s)`;
+      })
+      .join("\n")}`
+  );
+  if (!choice) {
+    logEvent("Trade caravan was recalled.");
+    return;
+  }
+  const index = parseInt(choice, 10) - 1;
+  const [selectedKey] = goodsEntries[index] || [];
+  if (!selectedKey) {
+    logEvent("❌ Invalid goods selection.");
+    return;
+  }
+  const good = harvestGoodsMap.get(selectedKey);
+  if (!good) {
+    logEvent("❌ Unknown goods cannot be traded.");
+    return;
+  }
+  const economyMultiplier = Math.max(1, Math.pow(player.economy / 5 + 1, 1.05));
+  const tradeStrength = 1 + player.tradePosts * 0.15;
+  const goldEarned = Math.round(good.value * economyMultiplier * tradeStrength);
+  spendEnergyAndGold(1, 0, `🚚 Exported ${good.emoji} ${good.name}.`, () => {
+    player.harvestedGoods[selectedKey] = Math.max(
+      0,
+      (player.harvestedGoods[selectedKey] || 0) - 1
+    );
+    player.tradesRemaining = Math.max(0, player.tradesRemaining - 1);
+    recalcHarvestedGoodsValue();
+    player.gold += goldEarned;
+    logEvent(
+      `💹 Traders return with ${goldEarned} gold (Economy ×${economyMultiplier.toFixed(
+        2
+      )}, Posts ×${tradeStrength.toFixed(2)}).`
+    );
+  });
+}
+
+function attemptRelicDelve() {
+  spendEnergyAndGold(
+    RELIC_DELVE_COST.energy,
+    RELIC_DELVE_COST.gold,
+    "🕳️ Crews descend into forgotten ruins...",
+    () => {
+      const relic = acquireRandomRelic({ reason: "delve" });
+      if (relic) {
+        logEvent(`🔮 Unearthed ${relic} during the delve!`);
+      } else {
+        logEvent("🥀 The expedition returned empty-handed.");
+      }
+    }
+  );
+}
+
+function showInventoryPanel() {
+  const goodsSummary = harvestableGoods
+    .map(g => `${g.emoji} ${g.name}: ${player.harvestedGoods[g.key] || 0}`)
+    .join(" | ");
+  const details = `📦 Inventory — Imports waiting: ${player.imports}. Harvests left: ${
+    player.harvestsLeft
+  }/${player.harvestLimit || 5}. Trades left: ${player.tradesRemaining}/${player.tradePosts}.
+Goods on hand: ${goodsSummary || "None"}.`;
+  logEvent(details);
+}
+
+function recalcHarvestedGoodsValue() {
+  const total = Object.entries(player.harvestedGoods || {}).reduce((sum, [key, count]) => {
+    const good = harvestGoodsMap.get(key);
+    if (!good) return sum;
+    return sum + good.value * count;
+  }, 0);
+  player.harvestedGoodsValue = total;
+}
+
 function buildMenu() {
   const available = buildings.filter(b => {
     const factionAllowed =
@@ -592,12 +731,23 @@ function buildMenu() {
   );
 }
 function spendEnergyAndGold(energyCost, goldCost, msg, onSuccess) {
-  if (player.energy < energyCost) return logEvent("❌ Not enough energy!");
-  if (player.gold < goldCost) return logEvent("❌ Not enough gold!");
+  if (player.energy < energyCost) {
+    logEvent("⚡ Not enough energy!");
+    return false;
+  }
+  if (player.gold < goldCost) {
+    logEvent("💰 Not enough gold!");
+    return false;
+  }
   player.energy -= energyCost;
   player.gold -= goldCost;
-  logEvent(`✅ ${msg}`);
-  if (onSuccess) onSuccess();
+  if (msg) {
+    logEvent(msg);
+  }
+  if (onSuccess) {
+    onSuccess();
+  }
+  return true;
 }
 function logEvent(msg) {
   const log = document.getElementById("event-log");
@@ -619,6 +769,11 @@ function endTurn() {
     player.relicsUsedThisTurn.clear();
   } else {
     player.relicsUsedThisTurn = new Set();
+  }
+  if (player.abilitiesUsedThisTurn?.clear) {
+    player.abilitiesUsedThisTurn.clear();
+  } else {
+    player.abilitiesUsedThisTurn = new Map();
   }
   player.canTrade = true;
   player.imports = Math.floor(Math.random() * 5) + 1;
@@ -647,6 +802,13 @@ let player = {
   tradePostIncome: 0,
   economyBonus: 0,
   relicsUsedThisTurn: new Set(),
+  abilitiesUsedThisTurn: new Map(),
+  harvestsLeft: 5,
+  harvestLimit: 5,
+  harvestedGoods: {},
+  harvestedGoodsValue: 0,
+  tradePosts: 0,
+  tradesRemaining: 0,
 };
 document.addEventListener("DOMContentLoaded", () => {
   diplomacyModal = document.getElementById("diplomacyModal");

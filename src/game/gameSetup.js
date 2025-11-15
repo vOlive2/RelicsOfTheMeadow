@@ -20,6 +20,13 @@ export function startPlayerGame({
   player.tradePostIncome = 0;
   player.economyBonus = 0;
   player.relicsUsedThisTurn = new Set();
+  player.abilitiesUsedThisTurn = new Map();
+  player.harvestLimit = player.harvestLimit || 5;
+  player.harvestsLeft = player.harvestLimit;
+  player.harvestedGoods = {};
+  player.harvestedGoodsValue = 0;
+  player.tradePosts = 0;
+  player.tradesRemaining = 0;
   updateDerivedStats();
   player.energy = calcStartingEnergy(player);
   renderHUD();
@@ -38,9 +45,12 @@ export function setupActionButtons(handleAction) {
     { id: "diplomacy", label: "🕊️ Diplomacy", detail: "Manage alliances and rivalries." },
     { id: "battle", label: "🛡️ Battle", detail: "March troops into combat." },
     { id: "build", label: "🔨 Build", detail: "Raise new structures." },
+    { id: "harvest", label: "🌾 Harvest", detail: "Gather crops and supplies." },
     { id: "trade", label: "📦 Trade", detail: "Exchange goods for bonuses." },
     { id: "collect", label: "💰 Collect Imports", detail: "Gather income from imports." },
+    { id: "delve", label: "🕳️ Delve Relic", detail: "Spare no expense for a relic." },
     { id: "use-relic", label: "🔮 Use Relic", detail: "Awaken an owned relic." },
+    { id: "inventory", label: "📚 Inventory", detail: "Review goods & logistics." },
   ];
   actions.forEach(a => {
     const btn = document.createElement("button");

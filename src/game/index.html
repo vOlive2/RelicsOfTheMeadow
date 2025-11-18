@@ -4,7 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Relics of the Meadow 🌿</title>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="../styles/layout.css" />
+  <link rel="stylesheet" href="../styles/map.css" />
+  <link rel="stylesheet" href="../styles/ui-panels.css" />
+  <link rel="stylesheet" href="../styles/buttons.css" />
+  <link rel="stylesheet" href="../styles/inventory.css" />
+  <link rel="stylesheet" href="../styles/actionlog.css" />
 </head>
 <body>
   <header>
@@ -15,12 +20,23 @@
   <main>
     <section class="top-panels">
       <div id="factionList" class="stats-panel"></div>
-      <div id="event-log" class="log-box stats-panel"></div>
+      <div class="log-wrapper stats-panel">
+        <div id="eventTicker" class="event-ticker"></div>
+        <div id="event-log" class="log-box"></div>
+      </div>
     </section>
     <section class="bottom-panels">
       <div id="mapPanel" class="stats-panel map-panel">
         <h3>Clearing Map</h3>
         <div id="clearingGrid" class="clearing-grid"></div>
+        <div id="mapActions" class="map-actions"></div>
+        <div id="clearingTooltip" class="clearing-tooltip hidden"></div>
+      </div>
+      <div class="stats-panel side-panel">
+        <h3>Resources</h3>
+        <div id="resourcePanel"></div>
+        <h3>Population</h3>
+        <div id="populationPanel"></div>
       </div>
       <div id="abilityPanel" class="stats-panel ability-box">
         <h3>Actions & Abilities</h3>

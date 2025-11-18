@@ -1,0 +1,53 @@
+.stats-panel h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+}
+
+#resourcePanel,
+#populationPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.resource-row,
+.population-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.event-ticker {
+  min-height: 3.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.event-ticker .world-event {
+  padding: 0.2rem 0.35rem;
+  border-left: 3px solid #8c6d3d;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.event-active {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.event-ticker .muted {
+  color: #6f5f4c;
+  font-style: italic;
+}
+
+.log-box {
+  border: 1px solid #c8b38a;
+  border-radius: 8px;
+  padding: 0.5rem;
+  max-height: 280px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.7);
+}

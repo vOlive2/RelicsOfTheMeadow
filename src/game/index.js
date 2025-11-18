@@ -2,12 +2,46 @@
 ///        MODULE IMPORTS         ///
 /////////////////////////////////////
 import { factions } from "../../data/factions.js";
-import buildings from "../../data/buildings.js";
+import { buildingDefinitions } from "../data/buildings.js";
+import { resources as resourceDefinitions } from "../data/resources.js";
 import { calculateResilience, calculateEconomy, calculateProwess, calcStartingEnergy } from "../utils/statCalc.js";
 import { importItems } from "../../data/importItems.js";
 import { battleSpoils } from "../../data/spoils.js";
 import { relics as relicLibrary } from "../../data/relics.js";
 import { startPlayerGame } from "./gameSetup.js";
+import {
+  initializeMapState as initializeWorldMap,
+  getMapClearings,
+  getFactionCapital,
+  setFactionCapital,
+  deleteFactionCapital,
+  getClearingById,
+  clearBeastFromClearing,
+  exploreFromClearing,
+  NEUTRAL_OWNER,
+} from "../managers/mapManager.js";
+import { constructBuilding } from "../managers/buildingManager.js";
+import {
+  hasBlueprint,
+  getScaledCostForBlueprint,
+  getStructuresInClearing,
+  calculateProductionTotals,
+  getProductionEntries,
+  addResources as depositProducedResources,
+} from "../managers/craftingManager.js";
+import { hasResources, spendResources } from "../managers/resourceManager.js";
+import {
+  applyEventProductionModifiers,
+  getActiveEvents,
+  maybeTriggerRandomEvent,
+  advanceEvents,
+  resetEventState,
+  startFestival,
+} from "../managers/eventManager.js";
+import { resolveBeastEncounter, resetCombatState } from "../managers/combatManager.js";
+import { initMapUI, renderMap as renderWorldMap } from "../ui/mapUI.js";
+import { renderResourcePanel } from "../ui/resourceUI.js";
+import { renderPopulationPanel } from "../ui/populationUI.js";
 console.log("✅ Game JS loaded!");
 
 const relicCatalog = new Map(relicLibrary.map(relic => [relic.name, relic]));
@@ -55,14 +89,104 @@ const COMMERCE_TRADE_COST = { energy: 1, gold: 0 };
 const ALLIANCE_COST = { energy: 1, gold: 30 };
 const DECLARE_WAR_COST = { energy: 2, gold: 50 };
 const PEACE_COST_ENERGY = 2;
+const EXPLORE_ENERGY_COST = 1;
+const FESTIVAL_COST = { fruits: 12, wheat: 10 };
 const aiStates = new Map();
 const BASE_GOLD_STORAGE = 500;
-const STARTING_VAULTS = 1;
-const CLEARING_COUNT = 25;
-const CLEARINGS_PER_FACTION = 4;
-const NEUTRAL_OWNER = "Wilderness";
-let mapClearings = [];
-const factionCapitals = new Map();
+let selectedClearingId = null;
+const WORLD_EVENT_LIMIT = 6;
+let worldEventFeed = [];
+const structureEmojiMap = {
+  Keep: "🏰",
+  "Captured Holdfast": "🏴",
+  "Hidden Capital": "🏯",
+  "Basic House": "🏠",
+  Villa: "🏡",
+  Mansion: "🏘️",
+  Manor: "🏛️",
+  Townhouse: "🏠",
+  Villa: "🏡",
+  "Humble Mansion": "🏘️",
+  Manor: "🏛️",
+  Barracks: "🪖",
+  "Farm Field": "🌾",
+  Farm: "🌾",
+  Orchard: "🍎",
+  "Herb Garden": "🌿",
+  "Garden of the Gods": "🌸",
+  "Trading Post": "🏪",
+  Vault: "🗄️",
+  "Super Vault": "💎",
+  Citadel: "⛪",
+  "Mine Shaft": "⛏️",
+  "Deep Mine Shaft": "⛏️",
+  "Grand Mine": "⚒️",
+  "Mine Hub": "⛏️",
+  Statue: "🗽",
+  Fountain: "⛲",
+  Banners: "🚩",
+  "Spinster's Hut": "🕸️",
+  "Spinster's Mansion": "🕷️",
+  "Web Outposts": "🕸️",
+  "Web Stations": "🕸️",
+  "Stronghold": "🛡️",
+  "Base of Operations": "🏗️",
+  "Spore Field": "🍄",
+  Nest: "🐣",
+  Hive: "🐝",
+  "Mega Hive": "🧠",
+};
+
+function formatStructureName(name) {
+  if (!name) return "";
+  const emoji = structureEmojiMap[name] || "🏗️";
+  return `${emoji} ${name}`;
+}
+
+function formatStructureList(structures = []) {
+  if (!structures.length) return "—";
+  const recent = structures.slice(-2).map(formatStructureName);
+  const extra = structures.length - recent.length;
+  return extra > 0 ? `${recent.join("<br>")} +${extra}` : recent.join("<br>");
+}
+
+const resourceLabelMap = Object.fromEntries(
+  resourceDefinitions.map(resource => [resource.key, `${resource.icon} ${resource.name}`])
+);
+
+function formatResourceTotals(totals = {}) {
+  const parts = Object.entries(totals)
+    .filter(([, amount]) => amount > 0)
+    .map(([key, amount]) => `${amount} ${resourceLabelMap[key] || key}`);
+  return parts.length ? parts.join(", ") : "no resources";
+}
+
+function announceWorldEvent(message) {
+  worldEventFeed.push({ message, id: Date.now() + Math.random() });
+  if (worldEventFeed.length > WORLD_EVENT_LIMIT) {
+    worldEventFeed = worldEventFeed.slice(-WORLD_EVENT_LIMIT);
+  }
+  renderWorldEventFeed();
+}
+
+function renderWorldEventFeed() {
+  const ticker = document.getElementById("eventTicker");
+  if (!ticker) return;
+  const active = getActiveEvents();
+  const activeMarkup = active.length
+    ? `<div class="event-active"><strong>Active Boons:</strong> ${active
+        .map(event => `${event.name} (${event.turnsRemaining}t)`)
+        .join(", ")}</div>`
+    : `<div class="event-active muted">No active events.</div>`;
+  const updates =
+    worldEventFeed.length > 0
+      ? worldEventFeed
+          .slice(-WORLD_EVENT_LIMIT)
+          .map(entry => `<div class="world-event">${entry.message}</div>`)
+          .join("")
+      : `<div class="world-event muted">No recent world events.</div>`;
+  ticker.innerHTML = `${activeMarkup}${updates}`;
+}
 
 function getGoldStorageCapacity(target = player) {
   if (!target) return BASE_GOLD_STORAGE;
@@ -178,41 +302,22 @@ function renderHUD() {
   `;
   renderFactionAbilities();
   updateActionIndicators();
-  renderMap();
+  renderWorldMap({
+    selectedClearingId,
+    formatOwnerLabel,
+    getOwnerColor,
+    formatStructures: formatStructureList,
+    formatTooltip: formatClearingTooltip,
+  });
+  renderResourcePanel();
+  renderPopulationPanel();
+  renderWorldEventFeed();
+  renderMapActions();
 }
 
 /////////////////////////////////////
 ///        MAP & CLEARINGS        ///
 /////////////////////////////////////
-function initializeMapState(playerFaction) {
-  mapClearings = Array.from({ length: CLEARING_COUNT }, (_, idx) => ({
-    id: idx + 1,
-    owner: NEUTRAL_OWNER,
-    structures: [],
-    capitalOf: null,
-  }));
-  factionCapitals.clear();
-  const factionOrder = [playerFaction, ...factions.filter(f => f.name !== playerFaction.name)];
-  const positions = shuffleArray(
-    Array.from({ length: CLEARING_COUNT }, (_, idx) => idx)
-  );
-  factionOrder.forEach(faction => {
-    const assignments = positions.splice(0, CLEARINGS_PER_FACTION);
-    assignments.forEach((pos, index) => {
-      const clearing = mapClearings[pos];
-      clearing.owner = faction.name;
-      clearing.structures = [];
-      clearing.capitalOf = null;
-      if (index === 0) {
-        clearing.capitalOf = faction.name;
-        clearing.structures.push("Capital Seat");
-        factionCapitals.set(faction.name, clearing.id);
-      }
-    });
-  });
-  renderMap();
-}
-
 function getOwnerColor(ownerName) {
   if (ownerName === player?.faction?.name) return "#5ba571";
   if (ownerName === NEUTRAL_OWNER) return "#6b705c";
@@ -227,54 +332,157 @@ function formatOwnerLabel(ownerName) {
   return faction ? `${faction.emoji} ${faction.name}` : ownerName;
 }
 
-function renderMap() {
-  const grid = document.getElementById("clearingGrid");
-  if (!grid) return;
-  if (!mapClearings.length) {
-    grid.innerHTML = "<p class=\"clearing-empty\">No territories mapped yet.</p>";
+function getSelectedClearing() {
+  if (!selectedClearingId) return null;
+  return getClearingById(selectedClearingId);
+}
+
+function formatClearingTooltip(clearing) {
+  if (!clearing) return "";
+  const owner =
+    clearing.owner === NEUTRAL_OWNER
+      ? "Wilderness"
+      : clearing.owner === player?.faction?.name
+      ? "Your control"
+      : clearing.owner || "None";
+  const structures = Array.isArray(clearing.structures) && clearing.structures.length
+    ? clearing.structures.join(", ")
+    : "None";
+  const beastLine = clearing.beast ? `<div>Beast: ${clearing.beast.type} (⚔️ ${clearing.beast.strength})</div>` : "";
+  const rarityLine = clearing.rarity ? `<div>Rarity: ${clearing.rarity}</div>` : "";
+  return `
+    <div><strong>Clearing #${clearing.id}</strong></div>
+    <div>Terrain: ${clearing.terrain}</div>
+    <div>Owner: ${owner}</div>
+    ${rarityLine}
+    ${beastLine}
+    <div>Structures: ${structures}</div>
+  `;
+}
+
+function evaluateBlueprintAvailability(definition, clearing, structuresHere = null) {
+  if (!definition || !clearing) return { canBuild: false, reason: "No clearing selected", cost: {} };
+  if (!hasBlueprint(definition.key)) {
+    return { canBuild: false, reason: "Blueprint locked", cost: getScaledCostForBlueprint(definition.key) };
+  }
+  if (definition.supportedTerrains && !definition.supportedTerrains.includes(clearing.terrain)) {
+    return { canBuild: false, reason: "Wrong terrain", cost: getScaledCostForBlueprint(definition.key) };
+  }
+  const structures = structuresHere || getStructuresInClearing(clearing.id);
+  if (definition.upgradeFrom && !structures.some(structure => structure.key === definition.upgradeFrom)) {
+    const previous = buildingDefinitions.find(entry => entry.key === definition.upgradeFrom);
+    return {
+      canBuild: false,
+      reason: `Requires ${previous?.name || "previous tier"} in this clearing`,
+      cost: getScaledCostForBlueprint(definition.key),
+    };
+  }
+  const scaledCost = getScaledCostForBlueprint(definition.key);
+  if (!hasResources(scaledCost)) {
+    return { canBuild: false, reason: "Need materials", cost: scaledCost };
+  }
+  return { canBuild: true, reason: "", cost: scaledCost };
+}
+
+function refreshHarvestAvailability() {
+  const hasProduction = getProductionEntries().length > 0;
+  if (!hasProduction) {
+    player.harvestLimit = 0;
+    player.harvestsLeft = 0;
     return;
   }
-  grid.innerHTML = "";
-  const ordered = [...mapClearings].sort((a, b) => a.id - b.id);
-  ordered.forEach(clearing => {
-    const tile = document.createElement("div");
-    const classes = ["clearing-tile"];
-    if (clearing.owner === player?.faction?.name) classes.push("clearing-player");
-    if (clearing.capitalOf) classes.push("clearing-capital");
-    tile.className = classes.join(" ");
-    tile.style.borderColor = getOwnerColor(clearing.owner);
-    const structures = clearing.structures || [];
-    let structureText = "—";
-    if (structures.length) {
-      const shown = structures.slice(-2);
-      structureText = shown.join(", ");
-      if (structures.length > shown.length) {
-        structureText += ` +${structures.length - shown.length}`;
-      }
+  if ((player.harvestLimit || 0) === 0) {
+    player.harvestLimit = 1;
+    player.harvestsLeft = 1;
+    return;
+  }
+  player.harvestsLeft = Math.min(player.harvestsLeft || 0, player.harvestLimit || 0);
+}
+
+function renderMapActions() {
+  const container = document.getElementById("mapActions");
+  if (!container) return;
+  const clearing = getSelectedClearing();
+  if (!clearing) {
+    container.innerHTML = "<p>Select a clearing to explore or engage.</p>";
+    return;
+  }
+  container.innerHTML = "";
+  const directions = [
+    { id: "north", label: "Explore North" },
+    { id: "east", label: "Explore East" },
+    { id: "south", label: "Explore South" },
+    { id: "west", label: "Explore West" },
+  ];
+  directions.forEach(dir => {
+    const btn = document.createElement("button");
+    btn.textContent = dir.label;
+    btn.disabled = player.energy < EXPLORE_ENERGY_COST;
+    btn.addEventListener("click", () => exploreSelectedDirection(dir.id));
+    container.appendChild(btn);
+  });
+  if (clearing.beast) {
+    const beastBtn = document.createElement("button");
+    beastBtn.textContent = "Battle Beast";
+    beastBtn.className = "danger";
+    beastBtn.disabled = player.troops <= 0;
+    beastBtn.addEventListener("click", () => battleBeastAtClearing(clearing));
+    container.appendChild(beastBtn);
+  }
+}
+
+function exploreSelectedDirection(direction) {
+  const clearing = getSelectedClearing();
+  if (!clearing) {
+    logEvent("📍 Select a clearing to explore from.");
+    return;
+  }
+  spendEnergyAndGold(EXPLORE_ENERGY_COST, 0, `🧭 Scouts push ${direction}.`, () => {
+    const { clearing: result, discovered } = exploreFromClearing(clearing.id, direction);
+    if (!result) {
+      logEvent("🧭 The path leads nowhere interesting.");
+      return;
     }
-    tile.innerHTML = `
-      <div class="clearing-id">#${clearing.id}</div>
-      <div class="clearing-owner">${formatOwnerLabel(clearing.owner)}</div>
-      <div class="clearing-structures">${structureText}</div>
-    `;
-    grid.appendChild(tile);
+    selectedClearingId = result.id;
+    const discoveryText = discovered
+      ? `Discovered ${result.terrain}${result.rarity ? ` (${result.rarity})` : ""}.`
+      : "Already mapped.";
+    logEvent(`🗺️ Exploration ${direction}: ${discoveryText}`);
+    if (discovered && result.beast) {
+      handleBeastEncounter(result, true);
+    }
+    refreshHarvestAvailability();
+    renderHUD();
   });
 }
 
-function placeStructureOnMap(ownerName, structureName) {
-  if (!ownerName || !structureName || !mapClearings.length) return;
-  const owned = mapClearings.filter(c => c.owner === ownerName);
-  if (!owned.length) return;
-  owned.sort((a, b) => {
-    const aCap = a.capitalOf === ownerName ? 0 : 1;
-    const bCap = b.capitalOf === ownerName ? 0 : 1;
-    if (aCap !== bCap) return aCap - bCap;
-    return (a.structures?.length || 0) - (b.structures?.length || 0);
+function battleBeastAtClearing(clearing) {
+  if (!clearing) return;
+  handleBeastEncounter(clearing, false);
+}
+
+function handleBeastEncounter(clearing, autoTriggered = false) {
+  if (!clearing?.beast) {
+    if (!autoTriggered) logEvent("✨ No beasts stalk that clearing.");
+    return;
+  }
+  if (player.troops <= 0) {
+    if (!autoTriggered) logEvent("🪖 No troops available to confront the beast.");
+    return;
+  }
+  if (!autoTriggered) {
+    logEvent(`⚔️ You engage the ${clearing.beast.type} at clearing #${clearing.id}.`);
+  }
+  const result = resolveBeastEncounter({
+    player,
+    clearing,
+    beast: clearing.beast,
+    announce: announceWorldEvent,
   });
-  const target = owned[0];
-  if (!target.structures) target.structures = [];
-  target.structures.push(structureName);
-  renderMap();
+  if (result.victory) {
+    clearBeastFromClearing(clearing.id);
+  }
+  renderHUD();
 }
 
 /////////////////////////////////////
@@ -515,13 +723,13 @@ function attemptPlayerRelicTheft(attackerName, baseChance = 0.35) {
   if (attackerName !== "The Devoured Faith") return false;
   const owned = (player.relics || []).filter(name => name && name !== "None");
   if (!owned.length) {
-    logEvent(`${attackerName} found no relics worth stealing.`);
+    announceWorldEvent(`${attackerName} found no relics worth stealing.`);
     return false;
   }
   const shield = player.relicShield || 0;
   const successChance = Math.max(0.05, baseChance - shield * 0.05);
   if (Math.random() > successChance) {
-    logEvent(`${attackerName} failed to breach your vaults.`);
+    announceWorldEvent(`${attackerName} failed to breach your vaults.`);
     return false;
   }
   const index = Math.floor(Math.random() * owned.length);
@@ -531,7 +739,7 @@ function attemptPlayerRelicTheft(attackerName, baseChance = 0.35) {
     player.relics.splice(removalIndex, 1);
   }
   factionRelics.set(attackerName, relicName);
-  logEvent(`🕵️ ${attackerName} stole ${relicName} from your vaults!`);
+  announceWorldEvent(`🕵️ ${attackerName} stole ${relicName} from your vaults!`);
   return true;
 }
 
@@ -558,90 +766,90 @@ const aiAbilityEffects = {
     const levy = Math.min(player.gold, 25 + player.economy);
     player.gold -= levy;
     state.gold = (state.gold || 0) + levy;
-    logEvent(`🐉 ${state.faction.name} taxes your caravans for ${levy} gold.`);
+    announceWorldEvent(`🐉 ${state.faction.name} taxes your caravans for ${levy} gold.`);
   },
   Diplomats: state => {
     if (player.declaredWars.includes(state.faction.name)) {
       player.declaredWars = player.declaredWars.filter(name => name !== state.faction.name);
-      logEvent(`🐉 ${state.faction.name} enforces diplomatic peace and exits the war.`);
+      announceWorldEvent(`🐉 ${state.faction.name} enforces diplomatic peace and exits the war.`);
     } else {
       player.happiness += 1;
-      logEvent(`🐉 ${state.faction.name}'s diplomats soothe tensions, boosting happiness.`);
+      announceWorldEvent(`🐉 ${state.faction.name}'s diplomats soothe tensions, boosting happiness.`);
     }
   },
   Loot: state => {
     const theft = Math.min(player.gold, 15 + Math.round((state.aggression || 0.3) * 30));
     player.gold -= theft;
     state.gold = (state.gold || 0) + theft;
-    logEvent(`🐺 ${state.faction.name} loot ${theft} gold from your border towns.`);
+    announceWorldEvent(`🐺 ${state.faction.name} loot ${theft} gold from your border towns.`);
   },
   Raid: () => {
     const loss = Math.min(player.troops, 5 + Math.round(player.protection / 2));
     player.troops = Math.max(0, player.troops - loss);
     player.happiness = Math.max(0, player.happiness - 1);
-    logEvent(`🐺 Horde raiders cut down ${loss} of your troops and demoralize the people.`);
+    announceWorldEvent(`🐺 Horde raiders cut down ${loss} of your troops and demoralize the people.`);
   },
   Consume: () => {
     const drain = Math.min(player.energy, 2);
     player.energy -= drain;
-    logEvent(`🐺 Horde zealots burn your supply lines, draining ${drain} energy.`);
+    announceWorldEvent(`🐺 Horde zealots burn your supply lines, draining ${drain} energy.`);
   },
   Delve: state => {
     if (!attemptPlayerRelicTheft(state.faction.name, 0.55)) {
-      logEvent(`🕯️ ${state.faction.name} failed to recover a relic from you.`);
+      announceWorldEvent(`🕯️ ${state.faction.name} failed to recover a relic from you.`);
     }
   },
   Sanctify: () => {
     const tithe = Math.min(player.gold, 20);
     player.gold -= tithe;
     player.happiness = Math.max(0, player.happiness - 1);
-    logEvent(`🕯️ The Devoured Faith sanctifies your markets, seizing ${tithe} gold.`);
+    announceWorldEvent(`🕯️ The Devoured Faith sanctifies your markets, seizing ${tithe} gold.`);
   },
   Encamp: () => {
     player.protection = Math.max(0, player.protection - 1);
-    logEvent("🕯️ Faith encampments unsettle your border, lowering protection.");
+    announceWorldEvent("🕯️ Faith encampments unsettle your border, lowering protection.");
   },
   Infiltration: state => {
     if (!attemptPlayerRelicTheft(state.faction.name, 0.65)) {
       player.gold = Math.max(0, player.gold - 15);
-      logEvent(`🕯️ ${state.faction.name} siphons 15 gold through infiltration.`);
+      announceWorldEvent(`🕯️ ${state.faction.name} siphons 15 gold through infiltration.`);
     }
   },
   Harmony: () => {
     player.happiness += 1;
     player.protection += 1;
-    logEvent("🌾 Meadowfolk harmony radiates outward, lifting spirits and defenses.");
+    announceWorldEvent("🌾 Meadowfolk harmony radiates outward, lifting spirits and defenses.");
   },
   Cooperation: () => {
     player.harvestedGoods = player.harvestedGoods || {};
     player.harvestedGoods.wheat = (player.harvestedGoods.wheat || 0) + 1;
-    logEvent("🌾 Meadowfolk share a crate of wheat with you.");
+    announceWorldEvent("🌾 Meadowfolk share a crate of wheat with you.");
     recalcHarvestedGoodsValue();
   },
   Regrow: () => {
     player.harvestsLeft = Math.min(player.harvestLimit, (player.harvestsLeft || 0) + 2);
-    logEvent("🌾 Meadowfolk regrow your fields, restoring harvest chances.");
+    announceWorldEvent("🌾 Meadowfolk regrow your fields, restoring harvest chances.");
   },
   SpinWeb: () => {
     player.tradesRemaining = Math.max(0, (player.tradesRemaining || 0) - 1);
-    logEvent("🕷️ Silken Dominion webs delay one of your trade missions.");
+    announceWorldEvent("🕷️ Silken Dominion webs delay one of your trade missions.");
   },
   Manipulate: () => {
     player.happiness = Math.max(0, player.happiness - 1);
-    logEvent("🕷️ Silken agents spread rumors, dinging happiness.");
+    announceWorldEvent("🕷️ Silken agents spread rumors, dinging happiness.");
   },
   Entangle: () => {
     const energySnare = Math.min(player.energy, 1);
     player.energy -= energySnare;
-    logEvent("🕷️ Entangling strands sap a bit of your energy.");
+    announceWorldEvent("🕷️ Entangling strands sap a bit of your energy.");
   },
   Spread: () => {
     player.protection = Math.max(0, player.protection - 1);
-    logEvent("🍄 Spores spread through your ramparts, weakening protection.");
+    announceWorldEvent("🍄 Spores spread through your ramparts, weakening protection.");
   },
   Bloom: () => {
     player.happiness = Math.max(0, player.happiness - 1);
-    logEvent("🍄 Mycelial blooms unsettle the populace, lowering happiness.");
+    announceWorldEvent("🍄 Mycelial blooms unsettle the populace, lowering happiness.");
   },
   Rebirth: () => {
     player.harvestedGoods = player.harvestedGoods || {};
@@ -649,7 +857,7 @@ const aiAbilityEffects = {
       player.harvestedGoods.spore_bloom = Math.max(0, player.harvestedGoods.spore_bloom - 1);
     }
     player.energy = Math.max(0, player.energy - 1);
-    logEvent("🍄 A spore rebirth consumes supplies, draining a little energy.");
+    announceWorldEvent("🍄 A spore rebirth consumes supplies, draining a little energy.");
     recalcHarvestedGoodsValue();
   },
 };
@@ -711,13 +919,15 @@ function processAIFactionTurns() {
 
 function executeAIFactionTurn(state) {
   const factionName = state.faction.name;
-  logEvent(`⋘ ${state.faction.emoji} ${factionName} Turn ⋙`);
+  announceWorldEvent(`⋘ ${state.faction.emoji} ${factionName} makes their move ⋙`);
   if (state.eliminated) {
     state.returnTimer = Math.max(0, (state.returnTimer || 0) - 1);
     if (state.returnTimer <= 0) {
       respawnFaction(state);
     } else {
-      logEvent(`${state.faction.emoji} ${factionName} regroups (${state.returnTimer} turns left).`);
+      announceWorldEvent(
+        `${state.faction.emoji} ${factionName} regroups (${state.returnTimer} turns left).`
+      );
     }
     return;
   }
@@ -781,9 +991,9 @@ function resolvePendingPeaceFor(state) {
   const accepted = willFactionAcceptPeace(state.faction);
   if (accepted) {
     player.declaredWars = player.declaredWars.filter(name => name !== state.faction.name);
-    logEvent(`🕊️ ${state.faction.name} accepts your peace proposal.`);
+    announceWorldEvent(`🕊️ ${state.faction.name} accepts your peace proposal.`);
   } else {
-    logEvent(`${state.faction.name} rejects your peace envoy.`);
+    announceWorldEvent(`${state.faction.name} rejects your peace envoy.`);
   }
   player.pendingPeaceOffers = player.pendingPeaceOffers.filter(entry => entry !== offer);
 }
@@ -797,7 +1007,7 @@ function aiWarSkirmish(state) {
       const plunder = Math.min(player.gold, 10 + loss * 2);
       player.gold -= plunder;
       state.gold = (state.gold || 0) + plunder;
-      logEvent(
+      announceWorldEvent(
         `${state.faction.emoji} ${name} raids your lands, costing ${loss} troops and ${plunder} gold.`
       );
       break;
@@ -806,19 +1016,19 @@ function aiWarSkirmish(state) {
       player.happiness = Math.max(0, player.happiness - 1);
       player.protection = Math.max(0, player.protection - 1);
       attemptPlayerRelicTheft(name, 0.45);
-      logEvent(`${state.faction.emoji} ${name} spreads dread through your people.`);
+      announceWorldEvent(`${state.faction.emoji} ${name} spreads dread through your people.`);
       break;
     case "The Jade Empire":
       if (player.gold > 0) {
         const tithe = Math.min(player.gold, 25);
         player.gold -= tithe;
         state.gold = (state.gold || 0) + tithe;
-        logEvent(`🐉 ${name} levies a trade tithe, seizing ${tithe} gold.`);
+        announceWorldEvent(`🐉 ${name} levies a trade tithe, seizing ${tithe} gold.`);
       }
       break;
     default:
       player.protection = Math.max(0, player.protection - 1);
-      logEvent(`${state.faction.emoji} ${name} presses the war, wearing down your defenses.`);
+      announceWorldEvent(`${state.faction.emoji} ${name} presses the war, wearing down your defenses.`);
       break;
   }
   if (Math.random() < 0.2) {
@@ -842,7 +1052,7 @@ function aiWarSkirmish(state) {
 
 function aiRequestAlliance(state) {
   if (player.declaredWars.includes(state.faction.name)) return;
-  logEvent(`${state.faction.emoji} ${state.faction.name} requests an alliance.`);
+  announceWorldEvent(`${state.faction.emoji} ${state.faction.name} requests an alliance.`);
   queuePlayerPrompt({
     type: "alliance",
     faction: state.faction.name,
@@ -867,7 +1077,7 @@ function aiDeclareWarOnPlayer(state) {
   if (player.declaredWars.includes(state.faction.name)) return;
   player.alliances = player.alliances.filter(name => name !== state.faction.name);
   player.declaredWars.push(state.faction.name);
-  logEvent(`⚔️ ${state.faction.name} declares war on you!`);
+  announceWorldEvent(`⚔️ ${state.faction.name} declares war on you!`);
 }
 
 function aiMeadowfolkTurn(state) {
@@ -893,7 +1103,7 @@ function aiMeadowfolkTurn(state) {
   }
   player.happiness += 1;
   player.resilience += 1;
-  logEvent("🌾 Meadowfolk gifts bolster your morale and resilience.");
+  announceWorldEvent("🌾 Meadowfolk gifts bolster your morale and resilience.");
   state.energy = Math.max(0, (state.energy || 0) - 1);
 }
 
@@ -912,7 +1122,9 @@ function applyAIAbilityEffect(state, ability) {
   if (fn) {
     fn(state);
   } else {
-    logEvent(`${state.faction.emoji} ${state.faction.name} practices ${ability.name}, plotting silently.`);
+    announceWorldEvent(
+      `${state.faction.emoji} ${state.faction.name} practices ${ability.name}, plotting silently.`
+    );
   }
 }
 
@@ -920,7 +1132,9 @@ function aiGatherResources(state) {
   const haul = 10 + Math.floor(Math.random() * 10);
   state.gold = (state.gold || 0) + haul;
   state.troops = (state.troops || 0) + 2;
-  logEvent(`${state.faction.emoji} ${state.faction.name} consolidates, earning ${haul} gold.`);
+  announceWorldEvent(
+    `${state.faction.emoji} ${state.faction.name} consolidates, earning ${haul} gold.`
+  );
 }
 
 function aiAttackRival(state) {
@@ -931,7 +1145,7 @@ function aiAttackRival(state) {
   const swing = Math.max(2, Math.round((state.troops || 20) / 15));
   opponentState.troops = Math.max(0, (opponentState.troops || 0) - swing);
   state.troops = Math.max(0, (state.troops || 0) - Math.floor(swing / 2));
-  logEvent(
+  announceWorldEvent(
     `${state.faction.emoji} ${state.faction.name} clashes with ${opponentState.faction.emoji} ${opponentState.faction.name} away from your borders.`
   );
 }
@@ -983,7 +1197,7 @@ function eliminateFactionFromMap(state) {
   state.returnTimer = 3;
   const factionName = state.faction.name;
   const captured = [];
-  mapClearings.forEach(clearing => {
+  getMapClearings().forEach(clearing => {
     if (clearing.owner === factionName) {
       clearing.owner = player.faction.name;
       clearing.capitalOf = null;
@@ -991,8 +1205,13 @@ function eliminateFactionFromMap(state) {
       captured.push(clearing.id);
     }
   });
-  factionCapitals.delete(factionName);
-  renderMap();
+  deleteFactionCapital(factionName);
+  renderWorldMap({
+    selectedClearingId,
+    formatOwnerLabel,
+    getOwnerColor,
+    formatStructures: formatStructureList,
+  });
   logEvent(
     `🏰 ${state.faction.emoji} ${factionName}'s capital falls! Their holdings become yours for now.`
   );
@@ -1000,28 +1219,33 @@ function eliminateFactionFromMap(state) {
 
 function respawnFaction(state) {
   const factionName = state.faction.name;
-  const playerCapitalId = factionCapitals.get(player.faction.name);
-  const playerTerritories = mapClearings.filter(
+  const playerCapitalId = getFactionCapital(player.faction.name);
+  const playerTerritories = getMapClearings().filter(
     clearing => clearing.owner === player.faction.name && clearing.id !== playerCapitalId
   );
   let target =
     playerTerritories.length > 0
       ? playerTerritories[Math.floor(Math.random() * playerTerritories.length)]
-      : mapClearings.find(clearing => clearing.owner === NEUTRAL_OWNER);
+      : getMapClearings().find(clearing => clearing.owner === NEUTRAL_OWNER);
   if (!target) {
-    logEvent(`${factionName} seeks a new foothold but finds none this year.`);
+    announceWorldEvent(`${factionName} seeks a new foothold but finds none this year.`);
     state.returnTimer = 1;
     return;
   }
   target.owner = factionName;
   target.capitalOf = factionName;
   target.structures = ["Hidden Capital"];
-  factionCapitals.set(factionName, target.id);
+  setFactionCapital(factionName, target.id);
   state.eliminated = false;
   state.returnTimer = 0;
   state.troops = Math.max(40, state.troopBase || 60);
-  logEvent(`${state.faction.emoji} ${factionName} resurfaces in clearing #${target.id}!`);
-  renderMap();
+  announceWorldEvent(`${state.faction.emoji} ${factionName} resurfaces in clearing #${target.id}!`);
+  renderWorldMap({
+    selectedClearingId,
+    formatOwnerLabel,
+    getOwnerColor,
+    formatStructures: formatStructureList,
+  });
 }
 
 function getBattleTargets() {
@@ -1357,6 +1581,9 @@ function handleAction(action) {
     case "commerce":
       showCommerceModal();
       break;
+    case "festival":
+      startFestivalAction();
+      break;
     case "collect-import":
       collectImportCrate();
       break;
@@ -1387,29 +1614,59 @@ function harvestCrops() {
     logEvent("🌱 The fields need rest. Wait until next turn to harvest again.");
     return;
   }
-  const goodsPool = getActiveHarvestGoods();
-  if (!goodsPool.length) {
-    logEvent("🌾 You have no cultivated goods to harvest yet.");
+  const { totals } = calculateProductionTotals();
+  if (!Object.keys(totals).length) {
+    logEvent("🌾 Your production buildings have nothing ready to collect.");
     return;
   }
+  const adjustedTotals = applyEventProductionModifiers(totals);
+  const eventBoosts = getActiveEvents();
+  const eventText = eventBoosts.length
+    ? ` Boosted by ${eventBoosts.map(event => event.name).join(", ")}.`
+    : "";
   spendEnergyAndGold(HARVEST_ENERGY_COST, 0, null, () => {
-    const totalWeight = goodsPool.reduce((sum, good) => sum + (good.weight || 1), 0);
-    let roll = Math.random() * totalWeight;
-    let bounty = goodsPool[0];
-    for (const good of goodsPool) {
-      roll -= good.weight || 1;
-      if (roll <= 0) {
-        bounty = good;
-        break;
-      }
-    }
-    player.harvestedGoods[bounty.key] = (player.harvestedGoods[bounty.key] || 0) + 1;
+    depositProducedResources(adjustedTotals);
     player.harvestsLeft = Math.max(0, player.harvestsLeft - 1);
-    recalcHarvestedGoodsValue();
     logEvent(
-      `${bounty.emoji} Harvested ${bounty.name}. (${player.harvestsLeft}/${limit} harvests left)`
+      `🌾 Harvest collected ${formatResourceTotals(adjustedTotals)} (${player.harvestsLeft}/${limit} harvests left).${eventText}`
     );
+    grantLegacyHarvestCrate();
+    recalcHarvestedGoodsValue();
+    renderResourcePanel();
   });
+}
+
+function grantLegacyHarvestCrate() {
+  const goodsPool = getActiveHarvestGoods();
+  if (!goodsPool.length) return;
+  const totalWeight = goodsPool.reduce((sum, good) => sum + (good.weight || 1), 0);
+  let roll = Math.random() * totalWeight;
+  let bounty = goodsPool[0];
+  for (const good of goodsPool) {
+    roll -= good.weight || 1;
+    if (roll <= 0) {
+      bounty = good;
+      break;
+    }
+  }
+  if (!player.harvestedGoods) player.harvestedGoods = {};
+  player.harvestedGoods[bounty.key] = (player.harvestedGoods[bounty.key] || 0) + 1;
+  logEvent(`📦 Bonus crate recovered: ${bounty.emoji} ${bounty.name}.`);
+}
+
+function startFestivalAction() {
+  if (!hasResources(FESTIVAL_COST)) {
+    logEvent("🎉 You need more fruits and wheat to host a festival.");
+    return;
+  }
+  if (!spendResources(FESTIVAL_COST)) {
+    logEvent("🎉 Supplies vanished before the festivities could begin.");
+    return;
+  }
+  startFestival(announceWorldEvent);
+  logEvent("🎊 Festival preparations begin across the realm.");
+  renderResourcePanel();
+  renderHUD();
 }
 
 function performTrade(selectedKey, onSuccess) {
@@ -1684,23 +1941,16 @@ function canPayActionCost(btn) {
 }
 
 function hasBuildableOptions() {
-  return buildings.some(b => {
-    const factionAllowed =
-      b.availableTo === "all" ||
-      (Array.isArray(b.availableTo) && b.availableTo.includes(player.faction.name));
-    if (!factionAllowed) return false;
-    const prereqMet = !b.preRec || b.preRec === "none" || player.buildings.includes(b.preRec);
-    if (!prereqMet) return false;
-    const builtCount = player.buildings.filter(item => item === b.name).length;
-    const cost = getScaledCost(b.cost, builtCount);
-    return player.energy >= cost.energy && player.gold >= cost.gold;
-  });
+  const clearing = getSelectedClearing();
+  if (!clearing) return false;
+  const structuresHere = getStructuresInClearing(clearing.id);
+  return buildingDefinitions.some(def => evaluateBlueprintAvailability(def, clearing, structuresHere).canBuild);
 }
 
 function canHarvestNow() {
   const limit = player.harvestLimit || 0;
   if (!limit || player.harvestsLeft <= 0) return false;
-  return getActiveHarvestGoods().length > 0;
+  return getProductionEntries().length > 0;
 }
 
 function hasCommerceOpportunity() {
@@ -1750,9 +2000,9 @@ function updateActionIndicators() {
         if (labelEl) {
           labelEl.textContent = `🌾 Harvest (${player.harvestsLeft}/${player.harvestLimit || 0})`;
         }
-        detailText += ` • Goods stored: ${getTotalHarvestedGoods()}`;
+        detailText += ` • Production sites: ${getProductionEntries().length}`;
         if (!canHarvestNow()) {
-          detailText += " • Build farms to unlock harvests.";
+          detailText += " • Build production structures to unlock harvests.";
           canUse = false;
         }
         break;
@@ -1764,8 +2014,11 @@ function updateActionIndicators() {
         }
         break;
       case "build":
-        if (!hasBuildableOptions()) {
-          detailText += " • No affordable structures.";
+        if (!selectedClearingId) {
+          detailText += " • Select a clearing on the map.";
+          canUse = false;
+        } else if (!hasBuildableOptions()) {
+          detailText += " • No structures available for that clearing.";
           canUse = false;
         }
         break;
@@ -1783,6 +2036,13 @@ function updateActionIndicators() {
         detailText += ` • Imports waiting: ${player.imports}`;
         if (player.imports <= 0) {
           detailText += " • No shipments to open.";
+          canUse = false;
+        }
+        break;
+      case "festival":
+        detailText += " • Costs fruits & wheat";
+        if (!hasResources(FESTIVAL_COST)) {
+          detailText += " • Need more supplies.";
           canUse = false;
         }
         break;
@@ -1821,69 +2081,36 @@ function updateActionIndicators() {
   });
 }
 
-const BUILD_COST_STEP = 0.2;
-const BUILD_COST_ACCELERATION = 0.3;
-
-function getScaledCost(cost, builtCount) {
-  const ramp = Math.max(0, builtCount - 1);
-  const multiplier = 1 + builtCount * BUILD_COST_STEP + ramp * BUILD_COST_ACCELERATION;
-  return {
-    gold: Math.round(cost.gold * multiplier),
-    energy: cost.energy,
-  };
-}
-
 function buildMenu() {
-  const available = buildings.filter(b => {
-    const factionAllowed =
-      b.availableTo === "all" ||
-      (Array.isArray(b.availableTo) && b.availableTo.includes(player.faction.name));
-    return factionAllowed;
-  });
-
-  if (!available.length) {
-    logEvent("No buildings available right now.");
+  const clearing = getSelectedClearing();
+  if (!clearing) {
+    logEvent("📍 Select a clearing on the map before building.");
     return;
   }
-
-  openActionModal("🏗️ Construct a Building", body => {
+  const structuresHere = getStructuresInClearing(clearing.id);
+  openActionModal(`🔨 Build in Clearing #${clearing.id}`, body => {
+    const summary = document.createElement("p");
+    summary.textContent = `Terrain: ${clearing.terrain}${clearing.rarity ? ` • ${clearing.rarity}` : ""}`;
+    summary.className = "clearing-summary";
+    body.appendChild(summary);
     const grid = document.createElement("div");
     grid.className = "build-grid";
-    available.forEach(b => {
-      const builtCount = player.buildings.filter(item => item === b.name).length;
-      const prereqMet = !b.preRec || b.preRec === "none" || player.buildings.includes(b.preRec);
-      const scaledCost = getScaledCost(b.cost, builtCount);
-      const hasResources = player.gold >= scaledCost.gold && player.energy >= scaledCost.energy;
+    buildingDefinitions.forEach(def => {
+      const { canBuild, reason, cost } = evaluateBlueprintAvailability(def, clearing, structuresHere);
       const card = document.createElement("button");
       card.className = "build-card";
-      if (!prereqMet) {
-        card.classList.add("locked");
-      } else if (!hasResources) {
-        card.classList.add("costly");
-      }
-      card.disabled = !prereqMet || !hasResources;
+      card.disabled = !canBuild;
       card.innerHTML = `
-        <strong>${b.name}</strong>
-        <p class="build-desc">${b.description}</p>
-        <div class="build-meta">
-          <span>💰 ${scaledCost.gold}</span>
-          <span>⚡ ${scaledCost.energy}</span>
-          <span>🏛️ ${builtCount}</span>
-        </div>
-        <div class="card-status">
-          ${
-            !prereqMet
-              ? `Requires ${b.preRec}`
-              : hasResources
-              ? "Ready to build"
-              : "Need more resources"
-          }
-        </div>
+        <strong>${def.icon || "🏗️"} ${def.name}</strong>
+        <p>${def.type === "housing" ? `+${def.beds} beds` : def.produces ? formatProductionOutput(def) : ""}</p>
+        ${renderTerrainSupport(def)}
+        <div class="build-cost">${renderCostLines(cost)}</div>
+        ${reason && !canBuild ? `<small class="build-locked">${reason}</small>` : ""}
       `;
-      if (prereqMet && hasResources) {
+      if (canBuild) {
         card.addEventListener("click", () => {
           closeActionModal();
-          purchaseBuilding(b, scaledCost);
+          executeConstruction(def, clearing);
         });
       }
       grid.appendChild(card);
@@ -1892,105 +2119,40 @@ function buildMenu() {
   });
 }
 
-function applyBuildingEffects(selected, { announce = true } = {}) {
-  if (!selected) return;
-  const boosts = selected.statBoosts || {};
-  if (boosts.happiness) player.happiness += boosts.happiness;
-  if (boosts.protection) player.protection += boosts.protection;
-  if (boosts.gold) grantGold(boosts.gold);
-  if (selected.tradeIncome) {
-    player.tradePostIncome = (player.tradePostIncome || 0) + selected.tradeIncome;
-    if (announce) {
-      logEvent(`📦 Trading Posts now yield +${selected.tradeIncome} gold per turn.`);
-    }
-  }
-  if (selected.economyBonus) {
-    player.economyBonus = (player.economyBonus || 0) + selected.economyBonus;
-    if (announce) {
-      logEvent("💹 Your economy strengthens thanks to the new trade hub.");
-    }
-  }
-  if (selected.tradeBoost) {
-    player.tradePosts = (player.tradePosts || 0) + 1;
-    player.tradesRemaining = Math.min(player.tradePosts, (player.tradesRemaining || 0) + 1);
-    if (announce) {
-      logEvent(`🛒 Trade missions per turn increased to ${player.tradePosts}.`);
-    }
-  }
-  if (selected.harvestBonus) {
-    player.harvestLimit = (player.harvestLimit || 0) + selected.harvestBonus;
-    player.harvestsLeft = Math.min(player.harvestLimit, (player.harvestsLeft || 0) + selected.harvestBonus);
-    if (announce) {
-      logEvent(`🌾 Harvest opportunities increased to ${player.harvestLimit} per turn.`);
-    }
-  }
-  if (selected.energyBonus) {
-    player.energyBonus = (player.energyBonus || 0) + selected.energyBonus;
-    if (announce) {
-      logEvent("⚡ Spiritual engines hum louder. Energy recovery improves.");
-    }
-  }
-  if (selected.recruitBonus) {
-    player.recruitBonus = (player.recruitBonus || 0) + selected.recruitBonus;
-  }
-  if (selected.battleBonus) {
-    player.battleBonus = (player.battleBonus || 0) + selected.battleBonus;
-  }
-  if (selected.extraGoods?.length) {
-    registerHarvestGoods(selected.extraGoods);
-    if (!player.extraHarvestGoods) player.extraHarvestGoods = [];
-    player.extraHarvestGoods.push(...selected.extraGoods);
-    if (announce) {
-      logEvent("🧺 New specialty goods can now be harvested.");
-    }
-  }
-  if (selected.unlocksAbilityTag) {
-    if (!player.unlockedAbilityTags) player.unlockedAbilityTags = new Set();
-    player.unlockedAbilityTags.add(selected.unlocksAbilityTag);
-  }
-  if (selected.relicShield) {
-    player.relicShield = (player.relicShield || 0) + 1;
-  }
-  if (selected.goldStorageBonus) {
-    player.goldStorageBonus = (player.goldStorageBonus || 0) + selected.goldStorageBonus;
-    enforceGoldCapacity();
-    if (announce) {
-      logEvent(`🏦 Gold storage expands by ${selected.goldStorageBonus}.`);
-    }
-  }
+function formatProductionOutput(definition) {
+  if (!definition?.produces) return "";
+  return Object.entries(definition.produces)
+    .map(([key, amount]) => `${resourceLabelMap[key] || key}: +${amount}`)
+    .join("<br>");
 }
 
-function seedStartingVault() {
-  if (!player) return;
+function renderTerrainSupport(definition) {
+  if (!definition.supportedTerrains) return "";
+  return `<small>Terrains: ${definition.supportedTerrains.join(", ")}</small>`;
+}
+
+function renderCostLines(cost = {}) {
+  if (!Object.keys(cost).length) return "Cost: —";
+  return Object.entries(cost)
+    .map(([resource, amount]) => `${resourceLabelMap[resource] || resource}: ${amount}`)
+    .join("<br>");
+}
+
+function executeConstruction(definition, clearing) {
+  const result = constructBuilding({ clearingId: clearing.id, blueprintKey: definition.key });
+  if (!result.success) {
+    logEvent(`🚫 Could not build ${definition.name}: ${result.reason || "unknown issue"}.`);
+    return;
+  }
   if (!Array.isArray(player.buildings)) player.buildings = [];
-  const vaultBlueprint = buildings.find(b => b.name === "Vault");
-  if (!vaultBlueprint) return;
-  const existing = player.buildings.filter(name => name === vaultBlueprint.name).length;
-  if (existing >= STARTING_VAULTS) return;
-  const needed = STARTING_VAULTS - existing;
-  for (let i = 0; i < needed; i += 1) {
-    player.buildings.push(vaultBlueprint.name);
-    applyBuildingEffects(vaultBlueprint, { announce: false });
-    placeStructureOnMap(player.faction?.name, vaultBlueprint.name);
+  player.buildings.push(definition.name);
+  logEvent(`${definition.icon || "🏗️"} Built ${definition.name} in clearing #${clearing.id}.`);
+  if (definition.type === "production") {
+    refreshHarvestAvailability();
   }
-  logEvent("🏦 Your treasury begins with a fortified Vault (+250 storage).");
+  renderHUD();
 }
 
-function purchaseBuilding(selected, scaledCost) {
-  const builtCount = player.buildings.filter(item => item === selected.name).length;
-  const cost = scaledCost || getScaledCost(selected.cost, builtCount);
-  spendEnergyAndGold(
-    cost.energy,
-    cost.gold,
-    `🏗️ Built ${selected.name}!`,
-    () => {
-      player.buildings.push(selected.name);
-      applyBuildingEffects(selected);
-      placeStructureOnMap(player.faction?.name, selected.name);
-      renderHUD();
-    }
-  );
-}
 function spendEnergyAndGold(energyCost, goldCost, msg, onSuccess) {
   if (player.energy < energyCost) {
     logEvent("⚡ Not enough energy!");
@@ -2087,6 +2249,9 @@ function endTurn() {
   player.tradesRemaining = player.tradePosts || 0;
   player.imports = Math.floor(Math.random() * 5) + 1;
   processAIFactionTurns();
+  advanceEvents(announceWorldEvent);
+  maybeTriggerRandomEvent(announceWorldEvent);
+  refreshHarvestAvailability();
   renderHUD();
   showNextPlayerPrompt();
 }
@@ -2159,11 +2324,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  initMapUI({
+    gridElementId: "clearingGrid",
+    tooltipElementId: "clearingTooltip",
+    onSelect: id => {
+      selectedClearingId = id;
+      renderHUD();
+    },
+  });
   const chosen = localStorage.getItem("chosenFaction") || factions[0].name;
   const faction = factions.find(f => f.name === chosen) || factions[0];
   startGame(faction);
 }); 
 function startGame(faction) {
+  resetEventState();
+  resetCombatState();
+  worldEventFeed = [];
   startPlayerGame({
     player,
     faction,
@@ -2173,12 +2349,15 @@ function startGame(faction) {
     handleAction,
     renderFactionAbilities,
   });
-  initializeMapState(faction);
+  const { playerClearingId } = initializeWorldMap(faction, factions);
+  selectedClearingId = playerClearingId ?? null;
+  player.currentClearingId = selectedClearingId;
   player.goldStorageBase = BASE_GOLD_STORAGE;
   player.goldStorageBonus = 0;
   enforceGoldCapacity();
-  seedStartingVault();
+  refreshHarvestAvailability();
   renderHUD();
+  renderWorldEventFeed();
   markRelicClaimed(faction.startingRelic);
   factionRelics.set(faction.name, null);
   player.pendingPeaceOffers = [];

@@ -1,12 +1,13 @@
-# 🌿 **Relics of the Meadow**
+# 🌿 Relics of the Meadow
 
-A turn-based strategy game of shifting alliances, ancient artifacts, and ruthless ambition. ⚔️🔥  
-In a fractured world ruled by six rival factions —  
-**The Crimson Horde**, **The Jade Empire**, **The Mycelid Monarchy**, **The Devoured Faith**, **The Spider Court**, and **The Meadowfolk Union** —  
-each fights to claim the lands, relics, and glory that will define their reign. 🏰🌾
+*A cozy survival sandbox about building, exploring, crafting, and facing ancient Beasts in a living, ever-expanding world.*
 
-Across the realms lie powerful **Relics**, each one **unique** and **bound to a single owner**.  
-They can be **claimed**, **stolen**, or **destroyed**, and every relic grants potent abilities that strengthen the faction that wields it. 💎⚡  
-Every move matters — every relic shifts the course of war. 🌍🔥
+Play the GitHub Pages build here:
+👉 https://volive-io.github.io/RelicsOfTheMeadow/
 
----
+# ⭐ About the Game
+
+Relics of the Meadow is a single-player world-building strategy sandbox where you start on a tiny 5×5 frontier and grow it tile by tile.
+Build homes, tend your economy, craft powerful structures, explore dangerous biomes, discover rare Clearings, and defeat colossal Beasts hiding in the deep.
+
+There are no AI factions — only you, your people, and the mysteries of the land.

@@ -1,0 +1,75 @@
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.action-ability-button {
+  flex: 1 1 48%;
+  min-width: 140px;
+  border: 1px solid #886434;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  background: linear-gradient(180deg, #fffaf0, #e9dbbf);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.action-ability-button.end-turn {
+  background: linear-gradient(180deg, #ffedd5, #f8c290);
+  border-color: #ce7c36;
+}
+
+.action-ability-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-ability-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.action-ability-button span {
+  display: block;
+  font-weight: 600;
+}
+
+.action-ability-button small {
+  display: block;
+  font-size: 0.75rem;
+  color: #5d4631;
+}
+
+.build-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.build-card {
+  border: 1px solid #cbb18a;
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.build-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.build-cost {
+  font-size: 0.8rem;
+  color: #5f4a34;
+}
+
+.build-locked {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #a94442;
+}

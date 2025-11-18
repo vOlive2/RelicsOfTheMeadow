@@ -1,0 +1,22 @@
+.log-entry {
+  margin: 0;
+  padding: 0.25rem 0.2rem;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+  font-size: 0.85rem;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.status-war {
+  color: #8b1a1a;
+}
+
+.status-ally {
+  color: #1b7f5b;
+}
+
+.status-neutral {
+  color: #54442b;
+}

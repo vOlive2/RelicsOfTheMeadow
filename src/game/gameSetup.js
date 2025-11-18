@@ -2,6 +2,9 @@
 ///// GAME START HELPERS /////
 /////////////////////////////////////
 import { calcStartingEnergy } from "../utils/statCalc.js";
+import { resetResources } from "../managers/resourceManager.js";
+import { resetPopulationState } from "../managers/populationManager.js";
+import { resetCraftingState } from "../managers/craftingManager.js";
 
 export function startPlayerGame({
   player,
@@ -34,6 +37,9 @@ export function startPlayerGame({
   player.relicShield = 0;
   player.pendingPeaceOffers = [];
   player.unlockedAbilityTags = new Set();
+  resetResources();
+  resetPopulationState();
+  resetCraftingState();
   updateDerivedStats();
   player.energy = calcStartingEnergy(player);
   setupActionButtons(handleAction);
@@ -51,6 +57,7 @@ export function setupActionButtons(handleAction) {
     { id: "build", label: "🔨 Build", detail: "Raise new structures.", costLabel: "Varies per structure" },
     { id: "harvest", label: "🌾 Harvest", detail: "Gather crops and supplies.", cost: { energy: 1, gold: 0 } },
     { id: "commerce", label: "🏛️ Commerce", detail: "Trade goods and collect imports.", costLabel: "Trades cost ⚡1 each" },
+    { id: "festival", label: "🎉 Festival", detail: "Boost happiness and production briefly.", costLabel: "Consumes fruits & wheat" },
     { id: "collect-import", label: "📥 Collect Imports", detail: "Open one shipment instantly.", cost: { energy: 0, gold: 0 } },
     { id: "recruit", label: "🪖 Recruit", detail: "Call fresh troops.", cost: { energy: 2, gold: 40 } },
     { id: "delve", label: "🕳️ Delve Relic", detail: "Spare no expense for a relic.", cost: { energy: 5, gold: 250 } },

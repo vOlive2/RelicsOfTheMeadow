@@ -8,7 +8,16 @@ import { adjustHappiness, setHousingCapacity } from "./populationManager.js";
 /////////////////////////////////////
 /// CONSTANTS                    ///
 /////////////////////////////////////
-const DEFAULT_BLUEPRINTS = ["basicHouse", "farm", "orchard", "herbGarden", "mineShaft"];
+const DEFAULT_BLUEPRINTS = [
+  "basicHouse",
+  "farm",
+  "orchard",
+  "herbGarden",
+  "mineShaft",
+  "techLab",
+  "library",
+  "apexResearch",
+];
 const COST_STEP = 0.2;
 const COST_ACCELERATION = 0.3;
 const ANCIENT_GROVE_BOOST = new Set(["farm", "orchard", "herbGarden"]);

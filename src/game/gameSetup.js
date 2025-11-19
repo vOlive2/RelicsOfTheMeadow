@@ -52,11 +52,10 @@ export function setupActionButtons(handleAction) {
   if (!actionArea) return;
   actionArea.innerHTML = "";
   const actions = [
-    { id: "diplomacy", label: "🕊️ Diplomacy", detail: "Manage alliances and rivalries.", costLabel: "Varies by action" },
     { id: "battle", label: "🛡️ Battle", detail: "March troops into combat.", cost: { energy: 3, gold: 0 } },
     { id: "build", label: "🔨 Build", detail: "Raise new structures.", costLabel: "Varies per structure" },
     { id: "harvest", label: "🌾 Harvest", detail: "Gather crops and supplies.", cost: { energy: 1, gold: 0 } },
-    { id: "commerce", label: "🏛️ Commerce", detail: "Trade goods and collect imports.", costLabel: "Trades cost ⚡1 each" },
+    { id: "trade", label: "🏛️ Trade", detail: "Run caravans and collect imports.", costLabel: "Missions cost ⚡1 each" },
     { id: "festival", label: "🎉 Festival", detail: "Boost happiness and production briefly.", costLabel: "Consumes fruits & wheat" },
     { id: "collect-import", label: "📥 Collect Imports", detail: "Open one shipment instantly.", cost: { energy: 0, gold: 0 } },
     { id: "recruit", label: "🪖 Recruit", detail: "Call fresh troops.", cost: { energy: 2, gold: 40 } },

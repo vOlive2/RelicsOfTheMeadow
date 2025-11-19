@@ -19,6 +19,23 @@
   font-size: 0.95rem;
 }
 
+.resource-group {
+  border: 1px solid rgba(23, 95, 52, 0.2);
+  border-radius: 6px;
+  padding: 0.35rem 0.4rem;
+  background: rgba(189, 224, 201, 0.35);
+}
+
+.resource-group strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.resource-group .resource-row {
+  font-size: 0.85rem;
+  padding-left: 0.4rem;
+}
+
 .event-ticker {
   min-height: 3.5rem;
   font-size: 0.85rem;

@@ -7,10 +7,10 @@
 .action-ability-button {
   flex: 1 1 48%;
   min-width: 140px;
-  border: 1px solid #886434;
+  border: 1px solid #2d6a4f;
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
-  background: linear-gradient(180deg, #fffaf0, #e9dbbf);
+  background: linear-gradient(180deg, #e9f5ec, #b7e4c7);
   font-size: 0.95rem;
   text-align: left;
   cursor: pointer;
@@ -18,8 +18,8 @@
 }
 
 .action-ability-button.end-turn {
-  background: linear-gradient(180deg, #ffedd5, #f8c290);
-  border-color: #ce7c36;
+  background: linear-gradient(180deg, #ffe5b0, #f4a259);
+  border-color: #cc5803;
 }
 
 .action-ability-button:disabled {

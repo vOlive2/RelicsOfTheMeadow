@@ -54,7 +54,7 @@ function resetMapState() {
 function createClearing(row, col) {
   const terrain = pickTerrain(row, col);
   const clearing = {
-    id: nextClearingId += 1,
+    id: nextClearingId,
     owner: NEUTRAL_OWNER,
     terrain,
     row,
@@ -67,6 +67,7 @@ function createClearing(row, col) {
   mapClearings.push(clearing);
   clearingLookup.set(clearing.id, clearing);
   coordsToId.set(coordKey(row, col), clearing.id);
+  nextClearingId += 1;
   return clearing;
 }
 
@@ -173,18 +174,18 @@ export function initializeMapState(playerFaction, factions = []) {
       createClearing(row, col);
     }
   }
-  const order = [playerFaction, ...factions.filter(f => f.name !== playerFaction.name)];
-  const assignments = assignCapitalPositions(order);
-  order.forEach(faction => {
-    const index = assignments.get(faction.name);
-    if (typeof index !== "number") return;
-    const clearing = mapClearings[index];
-    clearing.owner = faction.name;
-    clearing.capitalOf = faction.name;
-    clearing.structures = ["Keep"];
-    factionCapitals.set(faction.name, clearing.id);
-  });
+  factions
+    .filter(f => f.name !== playerFaction.name)
+    .forEach(f => factionCapitals.set(f.name, null));
+  const assignments = assignCapitalPositions([playerFaction]);
   const playerIndex = assignments.get(playerFaction.name);
+  if (typeof playerIndex === "number") {
+    const clearing = mapClearings[playerIndex];
+    clearing.owner = playerFaction.name;
+    clearing.capitalOf = playerFaction.name;
+    clearing.structures = ["Keep"];
+    factionCapitals.set(playerFaction.name, clearing.id);
+  }
   return {
     playerClearingId: typeof playerIndex === "number" ? mapClearings[playerIndex]?.id ?? null : null,
   };

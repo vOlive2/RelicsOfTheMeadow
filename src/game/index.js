@@ -85,7 +85,7 @@ Object.values(factionHarvestGoods).forEach(list => registerHarvestGoods(list));
 const HARVEST_ENERGY_COST = 1;
 const RELIC_DELVE_COST = { energy: 5, gold: 250 };
 const RECRUIT_COST = { energy: 2, gold: 40 };
-const COMMERCE_TRADE_COST = { energy: 1, gold: 0 };
+const TRADE_MISSION_COST = { energy: 1, gold: 0 };
 const ALLIANCE_COST = { energy: 1, gold: 30 };
 const DECLARE_WAR_COST = { energy: 2, gold: 50 };
 const PEACE_COST_ENERGY = 2;
@@ -125,6 +125,9 @@ const structureEmojiMap = {
   Statue: "🗽",
   Fountain: "⛲",
   Banners: "🚩",
+  "Tech Lab": "🧪",
+  Library: "📚",
+  "Apex Research Laboratory": "🔭",
   "Spinster's Hut": "🕸️",
   "Spinster's Mansion": "🕷️",
   "Web Outposts": "🕸️",
@@ -1566,9 +1569,6 @@ function offerPeace(faction) {
 /////////////////////////////////////
 function handleAction(action) {
   switch (action) {
-    case "diplomacy":
-      showDiplomacyMenu();
-      break;
     case "battle":
       showBattleModal();
       break;
@@ -1578,8 +1578,8 @@ function handleAction(action) {
     case "harvest":
       harvestCrops();
       break;
-    case "commerce":
-      showCommerceModal();
+    case "trade":
+      showTradeModal();
       break;
     case "festival":
       startFestivalAction();
@@ -1696,8 +1696,8 @@ function performTrade(selectedKey, onSuccess) {
   const tradeStrength = 1 + player.tradePosts * 0.15;
   const goldEarned = Math.round(good.value * economyMultiplier * tradeStrength);
   spendEnergyAndGold(
-    COMMERCE_TRADE_COST.energy,
-    COMMERCE_TRADE_COST.gold,
+    TRADE_MISSION_COST.energy,
+    TRADE_MISSION_COST.gold,
     `🚚 Exported ${good.emoji} ${good.name}.`,
     () => {
       player.harvestedGoods[selectedKey] = Math.max(
@@ -1811,13 +1811,13 @@ function showInventoryPanel() {
   });
 }
 
-function showCommerceModal() {
+function showTradeModal() {
   openActionModal("🏛️ Trade & Imports", body => {
-    renderCommerceContent(body);
+    renderTradeContent(body);
   });
 }
 
-function renderCommerceContent(container) {
+function renderTradeContent(container) {
   container.innerHTML = "";
   const summary = document.createElement("div");
   summary.className = "inventory-info commerce-info";
@@ -1870,14 +1870,14 @@ function renderCommerceContent(container) {
         </div>
       `;
       const button = document.createElement("button");
-      button.textContent = `Send Caravan (⚡${COMMERCE_TRADE_COST.energy})`;
+      button.textContent = `Send Caravan (⚡${TRADE_MISSION_COST.energy})`;
       const disabled =
         player.tradePosts <= 0 ||
         player.tradesRemaining <= 0 ||
         count <= 0 ||
-        player.energy < COMMERCE_TRADE_COST.energy;
+        player.energy < TRADE_MISSION_COST.energy;
       button.disabled = disabled;
-      button.addEventListener("click", () => performTrade(good.key, () => renderCommerceContent(container)));
+      button.addEventListener("click", () => performTrade(good.key, () => renderTradeContent(container)));
       card.appendChild(button);
       goodsGrid.appendChild(card);
     });
@@ -1899,7 +1899,7 @@ function renderCommerceContent(container) {
   const importBtn = document.createElement("button");
   importBtn.textContent = player.imports > 0 ? `Collect Import (${player.imports} waiting)` : "No imports ready";
   importBtn.disabled = player.imports <= 0;
-  importBtn.addEventListener("click", () => collectImportCrate(() => renderCommerceContent(container)));
+  importBtn.addEventListener("click", () => collectImportCrate(() => renderTradeContent(container)));
   importSection.appendChild(importBtn);
   const importHelp = document.createElement("p");
   importHelp.className = "commerce-note";
@@ -1953,7 +1953,7 @@ function canHarvestNow() {
   return getProductionEntries().length > 0;
 }
 
-function hasCommerceOpportunity() {
+function hasTradeOpportunity() {
   const hasImports = player.imports > 0;
   const canTrade =
     (player.tradePosts || 0) > 0 &&
@@ -2022,12 +2022,12 @@ function updateActionIndicators() {
           canUse = false;
         }
         break;
-      case "commerce":
+      case "trade":
         if (labelEl) {
-          labelEl.textContent = `🏛️ Commerce (${player.tradesRemaining}/${player.tradePosts || 0})`;
+          labelEl.textContent = `🏛️ Trade (${player.tradesRemaining}/${player.tradePosts || 0})`;
         }
         detailText += ` • Imports waiting: ${player.imports}`;
-        if (!hasCommerceOpportunity()) {
+        if (!hasTradeOpportunity()) {
           detailText += " • Nothing ready to trade or collect.";
           canUse = false;
         }

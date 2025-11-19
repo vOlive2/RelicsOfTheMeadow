@@ -13,12 +13,16 @@ let lastEncounter = null;
 /////////////////////////////////////
 function grantSpoils(beast, announce) {
   const rewards = {};
-  const oreReward = beast.strength * 2;
-  const rareReward = beast.strength >= 5 ? beast.strength : 0;
-  if (oreReward) rewards.ores = oreReward;
-  if (rareReward) rewards.rareMetals = Math.round(rareReward / 2);
+  const baseOre = Math.max(1, Math.round(beast.strength));
+  rewards.mythril = baseOre;
+  if (beast.strength >= 4) {
+    rewards.starpetalOre = Math.max(1, Math.round(beast.strength / 2));
+  }
   if (beast.type?.includes("Leviathan")) {
-    rewards.magicalEssence = 2;
+    rewards.lumenQuartz = 2;
+  }
+  if (beast.strength >= 3) {
+    rewards.magicalEssence = (rewards.magicalEssence || 0) + 1;
   }
   Object.entries(rewards).forEach(([key, amount]) => addResource(key, amount));
   announce(
